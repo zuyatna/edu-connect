@@ -34,9 +34,10 @@ message GetUserByEmailRequest {
 }
 
 message UpdateUserRequest {
-    string name = 1;
-    string email = 2;
-    string password = 3;
+    string id = 1;
+    string name = 2;
+    string email = 3;
+    string password = 4;
 }
 
 message UpdateOrderCountRequest {

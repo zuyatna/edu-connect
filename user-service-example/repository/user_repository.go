@@ -4,9 +4,7 @@ import (
 	"context"
 
 	"github.com/zuyatna/edu-connect/user-service/model"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
+	"gorm.io/gorm"
 )
 
 type IUserRepository interface {
@@ -20,85 +18,17 @@ type IUserRepository interface {
 }
 
 type UserRepository struct {
-	usersCollection *mongo.Collection
+	db *gorm.DB
 }
 
-func NewUserRepository(db *mongo.Database) *UserRepository {
+func NewUserRepository(db *gorm.DB) *UserRepository {
 	return &UserRepository{
-		usersCollection: db.Collection("users"),
+		db: db,
 	}
 }
 
-func (u *UserRepository) RegisterUser(ctx context.Context, user *model.User) (*model.User, error) {
-	doc := bson.D{
-		{Key: "name", Value: user.Name},
-		{Key: "email", Value: user.Email},
-		{Key: "password", Value: user.Password},
-		{Key: "order_count", Value: 0},
-	}
-
-	result, err := u.usersCollection.InsertOne(ctx, doc)
-	if err != nil {
-		return nil, err
-	}
-
-	user.ID = result.InsertedID.(primitive.ObjectID)
-
-	return user, nil
-}
-
-func (u *UserRepository) LoginUser(ctx context.Context, email, password string) (*model.User, error) {
-	var user model.User
-
-	err := u.usersCollection.FindOne(ctx, bson.M{"email": email}).Decode(&user)
-	if err != nil {
-		return nil, err
-	}
-
-	err = user.CompareHashAndPassword(password)
-	if err != nil {
-		return nil, err
-	}
-
-	return &user, nil
-}
-
-func (u *UserRepository) GetUserByID(ctx context.Context, id string) (*model.User, error) {
-	objectID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return nil, err
-	}
-
-	var user model.User
-	err = u.usersCollection.FindOne(ctx, bson.M{"_id": objectID}).Decode(&user)
-	if err != nil {
-		return nil, err
-	}
-
-	return &user, nil
-}
-
-func (u *UserRepository) GetUserByEmail(ctx context.Context, email string) (*model.User, error) {
-	var user model.User
-
-	err := u.usersCollection.FindOne(ctx, bson.M{"email": email}).Decode(&user)
-	if err != nil {
-		return nil, err
-	}
-
-	return &user, nil
-}
-
-func (u *UserRepository) UpdateUser(ctx context.Context, user *model.User) (*model.User, error) {
-	doc := bson.D{
-		{Key: "$set", Value: bson.D{
-			{Key: "name", Value: user.Name},
-			{Key: "email", Value: user.Email},
-			{Key: "password", Value: user.Password},
-		}},
-	}
-
-	_, err := u.usersCollection.UpdateOne(ctx, bson.M{"_id": user.ID}, doc)
+func (r *UserRepository) RegisterUser(ctx context.Context, user *model.User) (*model.User, error) {
+	err := r.db.Create(user).Error
 	if err != nil {
 		return nil, err
 	}
@@ -106,19 +36,54 @@ func (u *UserRepository) UpdateUser(ctx context.Context, user *model.User) (*mod
 	return user, nil
 }
 
-func (u *UserRepository) UpdateOrderCountUser(ctx context.Context, id string) error {
-	objectID, err := primitive.ObjectIDFromHex(id)
+func (r *UserRepository) LoginUser(ctx context.Context, email, password string) (*model.User, error) {
+	user := new(model.User)
+	err := r.db.Where("email = ?", email).First(user).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func (r *UserRepository) GetUserByID(ctx context.Context, id string) (*model.User, error) {
+	user := new(model.User)
+	err := r.db.Where("id = ?", id).First(user).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func (r *UserRepository) GetUserByEmail(ctx context.Context, email string) (*model.User, error) {
+	user := new(model.User)
+	err := r.db.Where("email = ?", email).First(user).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func (r *UserRepository) UpdateUser(ctx context.Context, user *model.User) (*model.User, error) {
+	err := r.db.Save(user).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func (r *UserRepository) UpdateOrderCountUser(ctx context.Context, id string) error {
+	user := new(model.User)
+	err := r.db.Where("id = ?", id).First(user).Error
 	if err != nil {
 		return err
 	}
 
-	doc := bson.D{
-		{Key: "$inc", Value: bson.D{
-			{Key: "order_count", Value: 1},
-		}},
-	}
-
-	_, err = u.usersCollection.UpdateOne(ctx, bson.M{"_id": objectID}, doc)
+	user.OrderCount++
+	err = r.db.Save(user).Error
 	if err != nil {
 		return err
 	}
@@ -126,13 +91,14 @@ func (u *UserRepository) UpdateOrderCountUser(ctx context.Context, id string) er
 	return nil
 }
 
-func (u *UserRepository) DeleteUser(ctx context.Context, id string) error {
-	objectID, err := primitive.ObjectIDFromHex(id)
+func (r *UserRepository) DeleteUser(ctx context.Context, id string) error {
+	user := new(model.User)
+	err := r.db.Where("id = ?", id).First(user).Error
 	if err != nil {
 		return err
 	}
 
-	_, err = u.usersCollection.DeleteOne(ctx, bson.M{"_id": objectID})
+	err = r.db.Delete(user).Error
 	if err != nil {
 		return err
 	}
