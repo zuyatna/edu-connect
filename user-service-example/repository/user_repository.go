@@ -10,10 +10,11 @@ import (
 type IUserRepository interface {
 	RegisterUser(ctx context.Context, user *model.User) (*model.User, error)
 	LoginUser(ctx context.Context, email, password string) (*model.User, error)
+
 	GetUserByID(ctx context.Context, id string) (*model.User, error)
 	GetUserByEmail(ctx context.Context, email string) (*model.User, error)
 	UpdateUser(ctx context.Context, user *model.User) (*model.User, error)
-	UpdateOrderCountUser(ctx context.Context, id string) error
+	UpdateDonateCountUser(ctx context.Context, id string, amount float64) error
 	DeleteUser(ctx context.Context, id string) error
 }
 
@@ -75,14 +76,14 @@ func (r *UserRepository) UpdateUser(ctx context.Context, user *model.User) (*mod
 	return user, nil
 }
 
-func (r *UserRepository) UpdateOrderCountUser(ctx context.Context, id string) error {
+func (r *UserRepository) UpdateDonateCountUser(ctx context.Context, id string, amount float64) error {
 	user := new(model.User)
 	err := r.db.Where("id = ?", id).First(user).Error
 	if err != nil {
 		return err
 	}
 
-	user.OrderCount++
+	user.DonateCount += amount
 	err = r.db.Save(user).Error
 	if err != nil {
 		return err

@@ -11,10 +11,11 @@ import (
 type IUserUsecase interface {
 	RegisterUser(ctx context.Context, user *model.User) (*model.User, error)
 	LoginUser(ctx context.Context, email, password string) (*model.User, error)
+	
 	GetUserByID(ctx context.Context, id string) (*model.User, error)
 	GetUserByEmail(ctx context.Context, email string) (*model.User, error)
 	UpdateUser(ctx context.Context, user *model.User) (*model.User, error)
-	UpdateOrderCountUser(ctx context.Context, id string) error
+	UpdateDonateCountUser(ctx context.Context, id string, amount float64) error
 	DeleteUser(ctx context.Context, id string) error
 }
 
@@ -153,8 +154,8 @@ func (u *UserUsecase) UpdateUser(ctx context.Context, user *model.User) (*model.
 	return u.userRepository.UpdateUser(ctx, user)
 }
 
-func (u *UserUsecase) UpdateOrderCountUser(ctx context.Context, id string) error {
-	return u.userRepository.UpdateOrderCountUser(ctx, id)
+func (u *UserUsecase) UpdateDonateCountUser(ctx context.Context, id string, amount float64) error {
+	return u.userRepository.UpdateDonateCountUser(ctx, id, amount)
 }
 
 func (u *UserUsecase) DeleteUser(ctx context.Context, id string) error {

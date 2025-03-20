@@ -16,9 +16,10 @@ import (
 type IUserHandler interface {
 	RegisterUser(ctx context.Context, req *pb.RegisterUserRequest) (*pb.UserResponse, error)
 	LoginUser(ctx context.Context, req *pb.LoginUserRequest) (*pb.UserResponse, error)
+	
 	GetUserByID(ctx context.Context, req *pb.GetUserByIDRequest) (*pb.UserResponse, error)
 	UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb.UserResponse, error)
-	UpdateOrderCountUser(ctx context.Context, req *pb.UpdateOrderCountRequest) (*pb.UpdateOrderCountResponse, error)
+	UpdateDonateCountUser(ctx context.Context, req *pb.UpdateDonateCountRequest) (*pb.UpdateDonateCountResponse, error)
 	DeleteUser(ctx context.Context, req *pb.DeleteUserRequest) (*pb.DeleteUserResponse, error)
 }
 
@@ -41,10 +42,10 @@ func (s *Server) RegisterUser(ctx context.Context, req *pb.RegisterUserRequest) 
 	req.Password = string(hashedPassword)
 
 	user := &model.User{
-		Name:       req.Name,
-		Email:      req.Email,
-		Password:   req.Password,
-		OrderCount: 0,
+		Name:        req.Name,
+		Email:       req.Email,
+		Password:    req.Password,
+		DonateCount: 0,
 	}
 
 	user, err = s.userUsecase.RegisterUser(ctx, user)
@@ -169,14 +170,14 @@ func (s *Server) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb
 	}, nil
 }
 
-func (s *Server) UpdateOrderCountUser(ctx context.Context, req *pb.UpdateOrderCountRequest) (*pb.UpdateOrderCountResponse, error) {
-	err := s.userUsecase.UpdateOrderCountUser(ctx, req.Id)
+func (s *Server) UpdateDonateCountUser(ctx context.Context, req *pb.UpdateDonateCountRequest) (*pb.UpdateDonateCountResponse, error) {
+	err := s.userUsecase.UpdateDonateCountUser(ctx, req.Id, float64(req.DonateCount))
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to update order count user: %v", err)
+		return nil, status.Errorf(codes.Internal, "failed to update donate count user: %v", err)
 	}
 
-	return &pb.UpdateOrderCountResponse{
-		Message: "Order count updated successfully",
+	return &pb.UpdateDonateCountResponse{
+		Message: "Donate count updated successfully",
 	}, nil
 }
 

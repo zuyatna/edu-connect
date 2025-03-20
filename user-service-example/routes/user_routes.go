@@ -22,9 +22,10 @@ func NewUserHTTPHandler(userClient pb.UserServiceClient) *UserHTTPHandler {
 func (h *UserHTTPHandler) Routes(e *echo.Echo) {
 	e.POST("/user/register", h.RegisterUser)
 	e.POST("/user/login", h.LoginUser)
+
 	e.GET("/user/:id", h.authMiddleware(h.GetUserByID))
 	e.PUT("/user/:id", h.authMiddleware(h.UpdateUser))
-	e.PUT("/user/:id/order", h.authMiddleware(h.UpdateOrderCountUser))
+	e.PUT("/user/:id/order", h.authMiddleware(h.UpdateDonateCountUser))
 	e.DELETE("/user/:id", h.authMiddleware(h.DeleteUser))
 }
 
@@ -104,11 +105,16 @@ func (h *UserHTTPHandler) UpdateUser(c echo.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (h *UserHTTPHandler) UpdateOrderCountUser(c echo.Context) error {
-	req := new(pb.UpdateOrderCountRequest)
-	req.Id = c.Param("id")
+func (h *UserHTTPHandler) UpdateDonateCountUser(c echo.Context) error {
+	req := new(pb.UpdateDonateCountRequest)
+	if err := c.Bind(req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, httputil.HTTPError{
+			Message: "Invalid request body",
+		})
+	}
 
-	res, err := h.userClient.UpdateOrderCount(c.Request().Context(), req)
+	req.Id = c.Param("id")
+	res, err := h.userClient.UpdateDonateCountUser(c.Request().Context(), req)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, httputil.HTTPError{
 			Message: err.Error(),

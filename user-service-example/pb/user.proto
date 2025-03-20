@@ -10,7 +10,7 @@ service UserService {
     rpc GetUserByID(GetUserByIDRequest) returns (UserResponse) {}
     rpc GetUserByEmail(GetUserByEmailRequest) returns (UserResponse) {}
     rpc UpdateUser(UpdateUserRequest) returns (UserResponse) {}
-    rpc UpdateOrderCount(UpdateOrderCountRequest) returns (UpdateOrderCountResponse) {}
+    rpc UpdateDonateCountUser(UpdateDonateCountRequest) returns (UpdateDonateCountResponse) {}
     rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse) {}
 }
 
@@ -40,8 +40,9 @@ message UpdateUserRequest {
     string password = 4;
 }
 
-message UpdateOrderCountRequest {
+message UpdateDonateCountRequest {
     string id = 1;
+    float donate_count = 2;
 }
 
 message DeleteUserRequest {
@@ -58,7 +59,7 @@ message LoginUserResponse {
     string token = 1;
 }
 
-message UpdateOrderCountResponse {
+message UpdateDonateCountResponse {
     string message = 1;
 }
 
