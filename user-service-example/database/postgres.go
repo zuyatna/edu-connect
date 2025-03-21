@@ -13,5 +13,5 @@ func InitDB() string {
 		fmt.Println("error loading .env file")
 	}
 
-	return os.Getenv("DATABASE_URL")
+	return os.Getenv("POSTGRES_URI")
 }

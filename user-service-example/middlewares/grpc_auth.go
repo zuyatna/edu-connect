@@ -17,7 +17,20 @@ const (
 	UserIDKey contextKey = "user_id"
 )
 
-func AuthInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+var publicEndpoints = map[string]bool{
+	"/user.UserService/RegisterUser": true,
+	"/user.UserService/LoginUser":    true,
+}
+
+func SelectiveAuthInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	if publicEndpoints[info.FullMethod] {
+		return handler(ctx, req)
+	}
+
+	return AuthGRPCInterceptor(ctx, req, info, handler)
+}
+
+func AuthGRPCInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		return nil, status.Errorf(codes.Unauthenticated, "missing metadata")

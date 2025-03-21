@@ -1,7 +1,9 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -12,11 +14,15 @@ import (
 	"github.com/labstack/gommon/log"
 	"github.com/sirupsen/logrus"
 	"github.com/zuyatna/edu-connect/user-service/database"
+	"github.com/zuyatna/edu-connect/user-service/handler"
+	"github.com/zuyatna/edu-connect/user-service/middlewares"
 	"github.com/zuyatna/edu-connect/user-service/model"
 	pb "github.com/zuyatna/edu-connect/user-service/pb/user"
+	"github.com/zuyatna/edu-connect/user-service/repository"
 	"github.com/zuyatna/edu-connect/user-service/routes"
+	"github.com/zuyatna/edu-connect/user-service/usecase"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/credentials"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -57,30 +63,34 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
+	grpcEndpoint := os.Getenv("GRPC_ENDPOINT")
+	if grpcEndpoint == "" {
+		grpcEndpoint = "localhost"
+	}
 
-	go InitHTTPServer(errChan, port)
-	go InitGRPCServer(db, errChan)
+	go InitHTTPServer(errChan, port, grpcEndpoint)
+	go InitGRPCServer(db, errChan, grpcEndpoint)
 
 	<-quitChan
 	logger.Info("Shutting down...")
 }
 
-func InitHTTPServer(errChan chan error, port string) {
-	grpcEndpoint := os.Getenv("GRPC_ENDPOINT")
-	if grpcEndpoint == "" {
-		grpcEndpoint = "localhost:50051"
-	}
+func InitHTTPServer(errChan chan error, port, grpcEndpoint string) {
+	/*
+		// For Cloud Run deployment
+		conn, err := grpc.Dial(grpcHost,
+		    grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})),
+		)
+	*/
 
-	conn, err := grpc.NewClient(":"+grpcEndpoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	// Use grpc.WithInsecure() for local development
+	conn, err := grpc.Dial(grpcEndpoint+":443",
+		grpc.WithInsecure(),
+	)
 	if err != nil {
 		panic(err)
 	}
-	defer func(conn *grpc.ClientConn) {
-		err := conn.Close()
-		if err != nil {
-			log.Fatalf("Failed to close gRPC connection: %v", err)
-		}
-	}(conn)
+	defer conn.Close()
 
 	userClient := pb.NewUserServiceClient(conn)
 
@@ -94,7 +104,6 @@ func InitHTTPServer(errChan chan error, port string) {
 		return c.String(http.StatusOK, "OK")
 	})
 
-	// TODO: refactor databases to use postgres
 	userRoutes := routes.NewUserHTTPHandler(userClient)
 	userRoutes.Routes(e)
 
@@ -102,7 +111,30 @@ func InitHTTPServer(errChan chan error, port string) {
 	errChan <- e.Start(":" + port)
 }
 
-// TODO: refactor databases to use postgres
-func InitGRPCServer(db *gorm.DB, errChan chan error) {
+func InitGRPCServer(db *gorm.DB, errChan chan error, grcpEndpoint string) {
+	listener, err := net.Listen("tcp", fmt.Sprintf("%s:443", grcpEndpoint))
+	if err != nil {
+		panic(err)
+	}
 
+	var opts []grpc.ServerOption
+	if os.Getenv("ENV") == "production" {
+		creds := credentials.NewServerTLSFromCert(&tls.Certificate{})
+		opts = append(opts, grpc.Creds(creds))
+	}
+
+	opts = append(opts, grpc.UnaryInterceptor(middlewares.SelectiveAuthInterceptor))
+
+	userRepo := repository.NewUserRepository(db)
+	userUsecase := usecase.NewUserUsecase(userRepo)
+	userHandler := handler.NewUserHandler(userUsecase)
+
+	grpcServer := grpc.NewServer(opts...)
+
+	pb.RegisterUserServiceServer(grpcServer, userHandler)
+
+	log.Info("Starting gRPC Server at", grcpEndpoint, ": 443")
+	if err := grpcServer.Serve(listener); err != nil {
+		errChan <- err
+	}
 }
