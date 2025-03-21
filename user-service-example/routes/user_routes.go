@@ -128,14 +128,14 @@ func (h *UserHTTPHandler) DeleteUser(c echo.Context) error {
 	req := new(pb.DeleteUserRequest)
 	req.Id = c.Param("id")
 
-	_, err := h.userClient.DeleteUser(c.Request().Context(), req)
+	resp, err := h.userClient.DeleteUser(c.Request().Context(), req)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, httputil.HTTPError{
 			Message: err.Error(),
 		})
 	}
 
-	return c.NoContent(http.StatusNoContent)
+	return c.JSON(http.StatusOK, resp)
 }
 
 func (h *UserHTTPHandler) authMiddleware(next echo.HandlerFunc) echo.HandlerFunc {

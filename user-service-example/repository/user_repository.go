@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/zuyatna/edu-connect/user-service/model"
 	"gorm.io/gorm"
 )
@@ -11,11 +12,11 @@ type IUserRepository interface {
 	RegisterUser(ctx context.Context, user *model.User) (*model.User, error)
 	LoginUser(ctx context.Context, email, password string) (*model.User, error)
 
-	GetUserByID(ctx context.Context, id string) (*model.User, error)
+	GetUserByID(ctx context.Context, id uuid.UUID) (*model.User, error)
 	GetUserByEmail(ctx context.Context, email string) (*model.User, error)
 	UpdateUser(ctx context.Context, user *model.User) (*model.User, error)
-	UpdateDonateCountUser(ctx context.Context, id string, amount float64) error
-	DeleteUser(ctx context.Context, id string) error
+	UpdateDonateCountUser(ctx context.Context, id uuid.UUID, amount float64) error
+	DeleteUser(ctx context.Context, id uuid.UUID) error
 }
 
 type UserRepository struct {
@@ -38,53 +39,73 @@ func (r *UserRepository) RegisterUser(ctx context.Context, user *model.User) (*m
 }
 
 func (r *UserRepository) LoginUser(ctx context.Context, email, password string) (*model.User, error) {
-	user := new(model.User)
-	err := r.db.Where("email = ?", email).First(user).Error
-	if err != nil {
+	var user model.User
+	if err := r.db.Where("email = ? AND (deleted_at IS NULL OR deleted_at = ?)",
+		email, "0001-01-01 00:00:00").First(&user).Error; err != nil {
 		return nil, err
 	}
 
-	return user, nil
+	if err := user.CompareHashAndPassword(password); err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }
 
-func (r *UserRepository) GetUserByID(ctx context.Context, id string) (*model.User, error) {
-	user := new(model.User)
-	err := r.db.Where("id = ?", id).First(user).Error
-	if err != nil {
+func (r *UserRepository) GetUserByID(ctx context.Context, id uuid.UUID) (*model.User, error) {
+	var user model.User
+	if err := r.db.Where("user_id = ? AND (deleted_at IS NULL OR deleted_at = ?)",
+		id, "0001-01-01 00:00:00").First(&user).Error; err != nil {
 		return nil, err
 	}
-
-	return user, nil
+	return &user, nil
 }
 
 func (r *UserRepository) GetUserByEmail(ctx context.Context, email string) (*model.User, error) {
-	user := new(model.User)
-	err := r.db.Where("email = ?", email).First(user).Error
-	if err != nil {
+	var user model.User
+	if err := r.db.Where("email = ? AND (deleted_at IS NULL OR deleted_at = ?)",
+		email, "0001-01-01 00:00:00").First(&user).Error; err != nil {
 		return nil, err
 	}
-
-	return user, nil
+	return &user, nil
 }
 
 func (r *UserRepository) UpdateUser(ctx context.Context, user *model.User) (*model.User, error) {
-	err := r.db.Save(user).Error
+	updates := make(map[string]interface{})
+
+	if user.Name != "" {
+		updates["name"] = user.Name
+	}
+
+	if user.Email != "" {
+		updates["email"] = user.Email
+	}
+
+	if user.Password != "" {
+		updates["password"] = user.Password
+	}
+
+	if len(updates) == 0 {
+		return user, nil
+	}
+
+	err := r.db.Model(&model.User{}).Where("user_id = ? AND (deleted_at IS NULL OR deleted_at = ?)",
+		user.UserID, "0001-01-01 00:00:00").Updates(updates).Error
 	if err != nil {
 		return nil, err
 	}
 
-	return user, nil
-}
-
-func (r *UserRepository) UpdateDonateCountUser(ctx context.Context, id string, amount float64) error {
-	user := new(model.User)
-	err := r.db.Where("id = ?", id).First(user).Error
+	updatedUser, err := r.GetUserByID(ctx, user.UserID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	user.DonateCount += amount
-	err = r.db.Save(user).Error
+	return updatedUser, nil
+}
+
+func (r *UserRepository) UpdateDonateCountUser(ctx context.Context, id uuid.UUID, amount float64) error {
+	err := r.db.Model(&model.User{}).Where("user_id = ? AND (deleted_at IS NULL OR deleted_at = ?)",
+		id, "0001-01-01 00:00:00").Update("donate_count", amount).Error
 	if err != nil {
 		return err
 	}
@@ -92,14 +113,9 @@ func (r *UserRepository) UpdateDonateCountUser(ctx context.Context, id string, a
 	return nil
 }
 
-func (r *UserRepository) DeleteUser(ctx context.Context, id string) error {
-	user := new(model.User)
-	err := r.db.Where("id = ?", id).First(user).Error
-	if err != nil {
-		return err
-	}
-
-	err = r.db.Delete(user).Error
+func (r *UserRepository) DeleteUser(ctx context.Context, id uuid.UUID) error {
+	err := r.db.Model(&model.User{}).Where("user_id = ? AND (deleted_at IS NULL OR deleted_at = ?)",
+		id, "0001-01-01 00:00:00").Update("deleted_at", "now()").Error
 	if err != nil {
 		return err
 	}

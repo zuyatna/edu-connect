@@ -5,18 +5,19 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/zuyatna/edu-connect/user-service/model"
 )
 
 type IUserUsecase interface {
 	RegisterUser(ctx context.Context, user *model.User) (*model.User, error)
 	LoginUser(ctx context.Context, email, password string) (*model.User, error)
-	
-	GetUserByID(ctx context.Context, id string) (*model.User, error)
+
+	GetUserByID(ctx context.Context, id uuid.UUID) (*model.User, error)
 	GetUserByEmail(ctx context.Context, email string) (*model.User, error)
 	UpdateUser(ctx context.Context, user *model.User) (*model.User, error)
-	UpdateDonateCountUser(ctx context.Context, id string, amount float64) error
-	DeleteUser(ctx context.Context, id string) error
+	UpdateDonateCountUser(ctx context.Context, id uuid.UUID, amount float64) error
+	DeleteUser(ctx context.Context, id uuid.UUID) error
 }
 
 type UserUsecase struct {
@@ -110,7 +111,7 @@ func (u *UserUsecase) LoginUser(ctx context.Context, email, password string) (*m
 	return u.userRepository.LoginUser(ctx, email, password)
 }
 
-func (u *UserUsecase) GetUserByID(ctx context.Context, id string) (*model.User, error) {
+func (u *UserUsecase) GetUserByID(ctx context.Context, id uuid.UUID) (*model.User, error) {
 	return u.userRepository.GetUserByID(ctx, id)
 }
 
@@ -154,10 +155,10 @@ func (u *UserUsecase) UpdateUser(ctx context.Context, user *model.User) (*model.
 	return u.userRepository.UpdateUser(ctx, user)
 }
 
-func (u *UserUsecase) UpdateDonateCountUser(ctx context.Context, id string, amount float64) error {
+func (u *UserUsecase) UpdateDonateCountUser(ctx context.Context, id uuid.UUID, amount float64) error {
 	return u.userRepository.UpdateDonateCountUser(ctx, id, amount)
 }
 
-func (u *UserUsecase) DeleteUser(ctx context.Context, id string) error {
+func (u *UserUsecase) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	return u.userRepository.DeleteUser(ctx, id)
 }

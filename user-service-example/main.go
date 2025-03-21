@@ -63,28 +63,26 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
+
 	grpcEndpoint := os.Getenv("GRPC_ENDPOINT")
 	if grpcEndpoint == "" {
 		grpcEndpoint = "localhost"
 	}
 
-	go InitHTTPServer(errChan, port, grpcEndpoint)
-	go InitGRPCServer(db, errChan, grpcEndpoint)
+	grpcPort := os.Getenv("GRPC_PORT")
+	if grpcPort == "" {
+		grpcPort = "50051"
+	}
+
+	go InitHTTPServer(errChan, port, grpcEndpoint, grpcPort)
+	go InitGRPCServer(db, errChan, grpcEndpoint, grpcPort)
 
 	<-quitChan
 	logger.Info("Shutting down...")
 }
 
-func InitHTTPServer(errChan chan error, port, grpcEndpoint string) {
-	/*
-		// For Cloud Run deployment
-		conn, err := grpc.Dial(grpcHost,
-		    grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})),
-		)
-	*/
-
-	// Use grpc.WithInsecure() for local development
-	conn, err := grpc.Dial(grpcEndpoint+":443",
+func InitHTTPServer(errChan chan error, port, grpcEndpoint, grpcPort string) {
+	conn, err := grpc.NewClient(grpcEndpoint+":"+grpcPort,
 		grpc.WithInsecure(),
 	)
 	if err != nil {
@@ -111,8 +109,8 @@ func InitHTTPServer(errChan chan error, port, grpcEndpoint string) {
 	errChan <- e.Start(":" + port)
 }
 
-func InitGRPCServer(db *gorm.DB, errChan chan error, grcpEndpoint string) {
-	listener, err := net.Listen("tcp", fmt.Sprintf("%s:443", grcpEndpoint))
+func InitGRPCServer(db *gorm.DB, errChan chan error, grcpEndpoint, grpcPort string) {
+	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%s", grcpEndpoint, grpcPort))
 	if err != nil {
 		panic(err)
 	}

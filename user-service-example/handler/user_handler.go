@@ -3,11 +3,12 @@ package handler
 import (
 	"context"
 
+	"github.com/google/uuid"
+	"github.com/zuyatna/edu-connect/user-service/middlewares"
 	"github.com/zuyatna/edu-connect/user-service/model"
 	pb "github.com/zuyatna/edu-connect/user-service/pb/user"
 	"github.com/zuyatna/edu-connect/user-service/usecase"
 	"github.com/zuyatna/edu-connect/user-service/utils"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -16,7 +17,7 @@ import (
 type IUserHandler interface {
 	RegisterUser(ctx context.Context, req *pb.RegisterUserRequest) (*pb.UserResponse, error)
 	LoginUser(ctx context.Context, req *pb.LoginUserRequest) (*pb.UserResponse, error)
-	
+
 	GetUserByID(ctx context.Context, req *pb.GetUserByIDRequest) (*pb.UserResponse, error)
 	UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb.UserResponse, error)
 	UpdateDonateCountUser(ctx context.Context, req *pb.UpdateDonateCountRequest) (*pb.UpdateDonateCountResponse, error)
@@ -54,7 +55,7 @@ func (s *Server) RegisterUser(ctx context.Context, req *pb.RegisterUserRequest) 
 	}
 
 	return &pb.UserResponse{
-		Id:    user.ID.Hex(),
+		Id:    user.UserID.String(),
 		Name:  user.Name,
 		Email: user.Email,
 	}, nil
@@ -66,7 +67,7 @@ func (s *Server) LoginUser(ctx context.Context, req *pb.LoginUserRequest) (*pb.L
 		return nil, status.Errorf(codes.Internal, "failed to login user: %v", err)
 	}
 
-	token, err := utils.GenerateToken(user.ID.Hex())
+	token, err := utils.GenerateToken(user.UserID.String())
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to login user: %v", err)
 	}
@@ -75,14 +76,8 @@ func (s *Server) LoginUser(ctx context.Context, req *pb.LoginUserRequest) (*pb.L
 		Token: token,
 	}, nil
 }
-
 func (s *Server) GetUserByID(ctx context.Context, req *pb.GetUserByIDRequest) (*pb.UserResponse, error) {
-	_, err := primitive.ObjectIDFromHex(req.Id)
-	if err != nil {
-		return nil, status.Errorf(codes.NotFound, "user not found: %v", err)
-	}
-
-	authenticatedUserID, ok := ctx.Value("user_id").(string)
+	authenticatedUserID, ok := ctx.Value(middlewares.UserIDKey).(string)
 	if !ok {
 		return nil, status.Errorf(codes.Internal, "failed to get authenticated user ID from context")
 	}
@@ -91,13 +86,18 @@ func (s *Server) GetUserByID(ctx context.Context, req *pb.GetUserByIDRequest) (*
 		return nil, status.Errorf(codes.PermissionDenied, "you can only update your own user data")
 	}
 
-	user, err := s.userUsecase.GetUserByID(ctx, req.Id)
+	userID, err := uuid.Parse(req.Id)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid user ID format: %v", err)
+	}
+
+	user, err := s.userUsecase.GetUserByID(ctx, userID)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "register user error: %v", err)
 	}
 
 	return &pb.UserResponse{
-		Id:    user.ID.Hex(),
+		Id:    user.UserID.String(),
 		Name:  user.Name,
 		Email: user.Email,
 	}, nil
@@ -110,19 +110,14 @@ func (s *Server) GetUserByEmail(ctx context.Context, req *pb.GetUserByEmailReque
 	}
 
 	return &pb.UserResponse{
-		Id:    user.ID.Hex(),
+		Id:    user.UserID.String(),
 		Name:  user.Name,
 		Email: user.Email,
 	}, nil
 }
 
 func (s *Server) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb.UserResponse, error) {
-	objectID, err := primitive.ObjectIDFromHex(req.Id)
-	if err != nil {
-		return nil, status.Errorf(codes.NotFound, "user not found: %v", err)
-	}
-
-	authenticatedUserID, ok := ctx.Value("user_id").(string)
+	authenticatedUserID, ok := ctx.Value(middlewares.UserIDKey).(string)
 	if !ok {
 		return nil, status.Errorf(codes.Internal, "failed to get authenticated user ID from context")
 	}
@@ -131,7 +126,12 @@ func (s *Server) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb
 		return nil, status.Errorf(codes.PermissionDenied, "you can only update your own user data")
 	}
 
-	getUser, err := s.userUsecase.GetUserByID(ctx, req.Id)
+	userID, err := uuid.Parse(req.Id)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid user ID format: %v", err)
+	}
+
+	getUser, err := s.userUsecase.GetUserByID(ctx, userID)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "register user error: %v", err)
 	}
@@ -152,7 +152,7 @@ func (s *Server) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb
 	}
 
 	user := &model.User{
-		ID:       objectID,
+		UserID:   userID,
 		Name:     req.Name,
 		Email:    req.Email,
 		Password: req.Password,
@@ -164,16 +164,30 @@ func (s *Server) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb
 	}
 
 	return &pb.UserResponse{
-		Id:    user.ID.Hex(),
+		Id:    user.UserID.String(),
 		Name:  user.Name,
 		Email: user.Email,
 	}, nil
 }
 
 func (s *Server) UpdateDonateCountUser(ctx context.Context, req *pb.UpdateDonateCountRequest) (*pb.UpdateDonateCountResponse, error) {
-	err := s.userUsecase.UpdateDonateCountUser(ctx, req.Id, float64(req.DonateCount))
+	authenticatedUserID, ok := ctx.Value(middlewares.UserIDKey).(string)
+	if !ok {
+		return nil, status.Errorf(codes.Internal, "failed to get authenticated user ID from context")
+	}
+
+	if authenticatedUserID != req.Id {
+		return nil, status.Errorf(codes.PermissionDenied, "you can only update your own user data")
+	}
+
+	userID, err := uuid.Parse(req.Id)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to update donate count user: %v", err)
+		return nil, status.Errorf(codes.InvalidArgument, "invalid user ID format: %v", err)
+	}
+
+	err = s.userUsecase.UpdateDonateCountUser(ctx, userID, float64(req.DonateCount))
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to update donate count: %v", err)
 	}
 
 	return &pb.UpdateDonateCountResponse{
@@ -182,7 +196,21 @@ func (s *Server) UpdateDonateCountUser(ctx context.Context, req *pb.UpdateDonate
 }
 
 func (s *Server) DeleteUser(ctx context.Context, req *pb.DeleteUserRequest) (*pb.DeleteUserResponse, error) {
-	err := s.userUsecase.DeleteUser(ctx, req.Id)
+	authenticatedUserID, ok := ctx.Value(middlewares.UserIDKey).(string)
+	if !ok {
+		return nil, status.Errorf(codes.Internal, "failed to get authenticated user ID from context")
+	}
+
+	if authenticatedUserID != req.Id {
+		return nil, status.Errorf(codes.PermissionDenied, "you can only update your own user data")
+	}
+
+	userID, err := uuid.Parse(req.Id)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid user ID format: %v", err)
+	}
+
+	err = s.userUsecase.DeleteUser(ctx, userID)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to delete user: %v", err)
 	}
