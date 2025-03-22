@@ -131,7 +131,7 @@ func InitGRPCServer(db *gorm.DB, errChan chan error, grcpEndpoint, grpcPort stri
 
 	pb.RegisterUserServiceServer(grpcServer, userHandler)
 
-	log.Info("Starting gRPC Server at", grcpEndpoint, ": 443")
+	log.Info("Starting gRPC Server at", grcpEndpoint, ":", grpcPort)
 	if err := grpcServer.Serve(listener); err != nil {
 		errChan <- err
 	}
