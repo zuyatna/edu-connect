@@ -8,6 +8,6 @@ RUN go mod tidy
 
 RUN go build -o institution-service
 
-EXPOSE 8080 50051
+EXPOSE 8081 50061
 
 CMD ["./institution-service"]
