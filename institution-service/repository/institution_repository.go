@@ -113,11 +113,11 @@ func (r *InstitutionRepository) UpdateInstitution(ctx context.Context, instituti
 }
 
 func (r *InstitutionRepository) DeleteInstitution(ctx context.Context, id uuid.UUID) error {
-	err := r.db.Where("institution_id = ? AND (deleted_at IS NULL OR deleted_at = ?)",
-		id, "0001-01-01 00:00:00").Update("deleted_at", time.Now()).Error
-	if err != nil {
-		return err
-	}
+    err := r.db.Model(&model.Institution{}).Where("institution_id = ? AND (deleted_at IS NULL OR deleted_at = ?)",
+        id, "0001-01-01 00:00:00").Update("deleted_at", time.Now()).Error
+    if err != nil {
+        return err
+    }
 
-	return nil
+    return nil
 }
