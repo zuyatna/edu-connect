@@ -24,18 +24,18 @@ type IInstitutionHandler interface {
 	DeleteInstitution(ctx context.Context, req *pb.DeleteInstitutionRequest) (*pb.DeleteInstitutionResponse, error)
 }
 
-type Server struct {
+type InstitutionServer struct {
 	pb.UnimplementedInstitutionServiceServer
 	userUsecase usecase.IInstitutionUsecase
 }
 
-func NewInstitutionHandler(userUsecase usecase.IInstitutionUsecase) *Server {
-	return &Server{
+func NewInstitutionHandler(userUsecase usecase.IInstitutionUsecase) *InstitutionServer {
+	return &InstitutionServer{
 		userUsecase: userUsecase,
 	}
 }
 
-func (s *Server) RegisterInstitution(ctx context.Context, req *pb.RegisterInstitutionRequest) (*pb.InstitutionResponse, error) {
+func (s *InstitutionServer) RegisterInstitution(ctx context.Context, req *pb.RegisterInstitutionRequest) (*pb.InstitutionResponse, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to register institution: %v", err)
@@ -63,7 +63,7 @@ func (s *Server) RegisterInstitution(ctx context.Context, req *pb.RegisterInstit
 	}, nil
 }
 
-func (s *Server) LoginInstitution(ctx context.Context, req *pb.LoginInstitutionRequest) (*pb.LoginInstitutionResponse, error) {
+func (s *InstitutionServer) LoginInstitution(ctx context.Context, req *pb.LoginInstitutionRequest) (*pb.LoginInstitutionResponse, error) {
 	institution, err := s.userUsecase.LoginInstitution(ctx, req.Email, req.Password)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to login institution: %v", err)
@@ -79,7 +79,7 @@ func (s *Server) LoginInstitution(ctx context.Context, req *pb.LoginInstitutionR
 	}, nil
 }
 
-func (s *Server) GetInstitutionByID(ctx context.Context, req *pb.GetInstitutionByIDRequest) (*pb.InstitutionResponse, error) {
+func (s *InstitutionServer) GetInstitutionByID(ctx context.Context, req *pb.GetInstitutionByIDRequest) (*pb.InstitutionResponse, error) {
 	authenticatedInstitutionID, ok := ctx.Value(middlewares.InstitutionIDKey).(string)
 	if !ok {
 		return nil, status.Errorf(codes.Internal, "failed to get authenticated institution ID from context")
@@ -106,7 +106,7 @@ func (s *Server) GetInstitutionByID(ctx context.Context, req *pb.GetInstitutionB
 	}, nil
 }
 
-func (s *Server) GetInstitutionByEmail(ctx context.Context, req *pb.GetInstitutionByEmailRequest) (*pb.InstitutionResponse, error) {
+func (s *InstitutionServer) GetInstitutionByEmail(ctx context.Context, req *pb.GetInstitutionByEmailRequest) (*pb.InstitutionResponse, error) {
 	institution, err := s.userUsecase.GetInstitutionByEmail(ctx, req.Email)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "get institution by email error: %v", err)
@@ -119,7 +119,7 @@ func (s *Server) GetInstitutionByEmail(ctx context.Context, req *pb.GetInstituti
 	}, nil
 }
 
-func (s *Server) UpdateInstitution(ctx context.Context, req *pb.UpdateInstitutionRequest) (*pb.InstitutionResponse, error) {
+func (s *InstitutionServer) UpdateInstitution(ctx context.Context, req *pb.UpdateInstitutionRequest) (*pb.InstitutionResponse, error) {
 	authenticatedInstitutionID, ok := ctx.Value(middlewares.InstitutionIDKey).(string)
 	if !ok {
 		return nil, status.Errorf(codes.Internal, "failed to get authenticated institution ID from context")
@@ -175,7 +175,7 @@ func (s *Server) UpdateInstitution(ctx context.Context, req *pb.UpdateInstitutio
 	}, nil
 }
 
-func (s *Server) DeleteInstitution(ctx context.Context, req *pb.DeleteInstitutionRequest) (*pb.DeleteInstitutionResponse, error) {
+func (s *InstitutionServer) DeleteInstitution(ctx context.Context, req *pb.DeleteInstitutionRequest) (*pb.DeleteInstitutionResponse, error) {
 	authenticatedInstitutionID, ok := ctx.Value(middlewares.InstitutionIDKey).(string)
 	if !ok {
 		return nil, status.Errorf(codes.Internal, "failed to get authenticated institution ID from context")
