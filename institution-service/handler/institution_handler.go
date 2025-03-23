@@ -195,5 +195,7 @@ func (s *InstitutionServer) DeleteInstitution(ctx context.Context, req *pb.Delet
 		return nil, status.Errorf(codes.Internal, "delete institution error: %v", err)
 	}
 
-	return &pb.DeleteInstitutionResponse{}, nil
+	return &pb.DeleteInstitutionResponse{
+		Message: "Institution deleted successfully",
+	}, nil
 }
