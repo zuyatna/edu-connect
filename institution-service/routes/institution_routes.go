@@ -23,9 +23,9 @@ func (h *InstitutionHTTPHandler) Routes(e *echo.Echo) {
 	e.POST("/institution/register", h.RegisterInstitution)
 	e.POST("/institution/login", h.LoginInstitution)
 
-	e.GET("/institution/:id", h.authMiddleware(h.GetInstitutionByID))
-	e.PUT("/institution/:id", h.authMiddleware(h.UpdateInstitution))
-	e.DELETE("/institution/:id", h.authMiddleware(h.DeleteInstitution))
+	e.GET("/institution/:id", AuthMiddleware(h.GetInstitutionByID))
+	e.PUT("/institution/:id", AuthMiddleware(h.UpdateInstitution))
+	e.DELETE("/institution/:id", AuthMiddleware(h.DeleteInstitution))
 }
 
 func (h *InstitutionHTTPHandler) RegisterInstitution(c echo.Context) error {
@@ -121,7 +121,7 @@ func (h *InstitutionHTTPHandler) DeleteInstitution(c echo.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (h *InstitutionHTTPHandler) authMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+func AuthMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		token := c.Request().Header.Get("Authorization")
 		if token == "" {
