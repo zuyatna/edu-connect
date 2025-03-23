@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/zuyatna/edu-connect/user-service/model"
@@ -115,7 +116,7 @@ func (r *UserRepository) UpdateDonateCountUser(ctx context.Context, id uuid.UUID
 
 func (r *UserRepository) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	err := r.db.Model(&model.User{}).Where("user_id = ? AND (deleted_at IS NULL OR deleted_at = ?)",
-		id, "0001-01-01 00:00:00").Update("deleted_at", "now()").Error
+		id, "0001-01-01 00:00:00").Update("deleted_at", time.Now()).Error
 	if err != nil {
 		return err
 	}
