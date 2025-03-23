@@ -18,6 +18,7 @@ import (
 	"github.com/zuyatna/edu-connect/institution-service/middlewares"
 	"github.com/zuyatna/edu-connect/institution-service/model"
 	"github.com/zuyatna/edu-connect/institution-service/pb/institution"
+	"github.com/zuyatna/edu-connect/institution-service/pb/post"
 	"github.com/zuyatna/edu-connect/institution-service/repository"
 	"github.com/zuyatna/edu-connect/institution-service/routes"
 	"github.com/zuyatna/edu-connect/institution-service/usecase"
@@ -48,7 +49,10 @@ func main() {
 		panic("failed to connect to database!")
 	}
 
-	db.AutoMigrate(&model.Institution{})
+	db.AutoMigrate(
+		&model.Post{},
+		&model.Institution{},
+	)
 	fmt.Println("Database migrated!")
 
 	sigChan := make(chan os.Signal, 1)
@@ -100,6 +104,7 @@ func InitHTTPServer(errChan chan error, port, grpcEndpoint, grpcPort string) {
 	defer conn.Close()
 
 	insClient := institution.NewInstitutionServiceClient(conn)
+	postClient := post.NewPostServiceClient(conn)
 
 	e := echo.New()
 
@@ -113,6 +118,9 @@ func InitHTTPServer(errChan chan error, port, grpcEndpoint, grpcPort string) {
 
 	insRoutes := routes.NewInstitutionHTTPHandler(insClient)
 	insRoutes.Routes(e)
+
+	postRoutes := routes.NewPostHTTPHandler(postClient)
+	postRoutes.Routes(e)
 
 	log.Info("Starting HTTP Server at port: ", port)
 	errChan <- e.Start(":" + port)
@@ -136,9 +144,14 @@ func InitGRPCServer(db *gorm.DB, errChan chan error, grcpEndpoint, grpcPort stri
 	insUsecase := usecase.NewInstitutionUsecase(insRepo)
 	insHandler := handler.NewInstitutionHandler(insUsecase)
 
+	postRepo := repository.NewPostRepository(db)
+	postUsecase := usecase.NewPostUsecase(postRepo)
+	postHandler := handler.NewPostHandler(postUsecase)
+
 	grpcServer := grpc.NewServer(opts...)
 
 	institution.RegisterInstitutionServiceServer(grpcServer, insHandler)
+	post.RegisterPostServiceServer(grpcServer, postHandler)
 
 	log.Info("Starting gRPC Server at", grcpEndpoint, ":", grpcPort)
 	if err := grpcServer.Serve(lis); err != nil {
