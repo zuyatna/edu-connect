@@ -6,13 +6,13 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
-	"github.com/streadway/amqp"
+	"github.com/rabbitmq/amqp091-go"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 var DB *gorm.DB
-var RabbitMQConn *amqp.Connection
+var RabbitMQConn *amqp091.Connection
 
 func InitDB() *gorm.DB {
 
@@ -45,12 +45,28 @@ func InitDB() *gorm.DB {
 }
 
 func InitRabbitMQ() {
-	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
+
+	err := godotenv.Load()
+	if err != nil {
+		log.Println(err.Error())
+	}
+
+	RabbitMQUser := os.Getenv("MQUSER")
+	RabbitMQPass := os.Getenv("MQPASS")
+	RabbitMQHost := os.Getenv("MQHOST")
+	RabbitMQPort := os.Getenv("MQPORT")
+	RabbitMQVHost := os.Getenv("MQVHOST")
+
+	conStr := fmt.Sprintf("amqp://%s:%s@%s:%s/%s",
+		RabbitMQUser, RabbitMQPass, RabbitMQHost, RabbitMQPort, RabbitMQVHost,
+	)
+
+	connection, err := amqp091.Dial(conStr)
 	if err != nil {
 		log.Fatal("Failed to connect to RabbitMQ:", err)
 	}
 
-	RabbitMQConn = conn
+	RabbitMQConn = connection
 	fmt.Println("RabbitMQ connected")
 }
 

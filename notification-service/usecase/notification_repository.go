@@ -3,54 +3,63 @@ package usecase
 import (
 	"notification_service/model"
 	"notification_service/repository"
+	"notification_service/service"
 
 	"github.com/sirupsen/logrus"
 )
 
 type INotificationUsecase interface {
-	SendNotification(email, subject, message string) error
+	SendNotification(notification model.Notification) error
 }
 
 type notificationUsecase struct {
 	repo   repository.INotificationRepository
-	queue  queue.IRabbitMQPublisher
 	logger *logrus.Logger
 }
 
 func NewNotificationUsecase(
 	repo repository.INotificationRepository,
-	queue queue.IRabbitMQPublisher,
 	logger *logrus.Logger,
 ) INotificationUsecase {
 	return &notificationUsecase{
 		repo:   repo,
-		queue:  queue,
 		logger: logger,
 	}
 }
 
-func (u *notificationUsecase) SendNotification(email, subject, message string) error {
-	notification := &model.Notification{
-		Email:   email,
-		Subject: subject,
-		Message: message,
-		Status:  "pending",
-	}
+func (u *notificationUsecase) SendNotification(notification model.Notification) error {
 
-	if err := u.repo.Create(notification); err != nil {
-		u.logger.WithError(err).Error("Failed to create notification in usecase")
+	err := u.repo.Create(&notification)
+	if err != nil {
+		u.logger.WithFields(logrus.Fields{
+			"email": notification.Email,
+			"error": err.Error(),
+		}).Error("Failed to save notification")
 		return err
 	}
 
-	if err := u.queue.Publish(notification); err != nil {
-		u.logger.WithError(err).Error("Failed to publish notification to RabbitMQ")
+	err = service.SendEmail(notification.Email, notification.Subject, notification.Message)
+	if err != nil {
+		u.logger.WithFields(logrus.Fields{
+			"email": notification.Email,
+			"error": err.Error(),
+		}).Error("Failed to send email")
+		return err
+	}
+
+	err = u.repo.MarkAsSent(notification.ID)
+	if err != nil {
+		u.logger.WithFields(logrus.Fields{
+			"id":    notification.ID,
+			"error": err.Error(),
+		}).Error("Failed to update notification status")
 		return err
 	}
 
 	u.logger.WithFields(logrus.Fields{
 		"id":    notification.ID,
-		"email": email,
-	}).Info("Notification sent to queue")
+		"email": notification.Email,
+	}).Info("Notification processed successfully")
 
 	return nil
 }

@@ -2,30 +2,64 @@ package queue
 
 import (
 	"encoding/json"
-	"fmt"
-	"notification_service/config"
 	"notification_service/model"
-	"notification_service/repository"
-	"notification_service/service"
+
+	"github.com/rabbitmq/amqp091-go"
+	"github.com/sirupsen/logrus"
 )
 
-func StartConsumer(repo repository.INotificationRepository) {
-	ch, _ := config.RabbitMQConn.Channel()
+type NotificationProcessor interface {
+	SendNotification(notification model.Notification) error
+}
 
-	msgs, _ := ch.Consume(
-		"email_queue", "", true, false, false, false, nil,
+func StartConsumer(conn *amqp091.Connection, uc NotificationProcessor, logger *logrus.Logger) {
+	ch, err := conn.Channel()
+	if err != nil {
+		logger.Fatal("Failed to open RabbitMQ channel:", err)
+	}
+	defer ch.Close()
+
+	q, err := ch.QueueDeclare(
+		"email",
+		true,
+		false,
+		false,
+		false,
+		nil,
 	)
+	if err != nil {
+		logger.Fatal("Failed to declare queue:", err)
+	}
+
+	msgs, err := ch.Consume(
+		q.Name,
+		"",
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		logger.Fatal("Failed to register consumer:", err)
+	}
+
+	logger.Info("Waiting for messages from RabbitMQ...")
 
 	for msg := range msgs {
 		var notification model.Notification
-		json.Unmarshal(msg.Body, &notification)
+		err := json.Unmarshal(msg.Body, &notification)
+		if err != nil {
+			logger.Error("Failed to unmarshal message:", err)
+			continue
+		}
 
-		err := service.SendEmail(notification.Email, notification.Subject, notification.Message)
-		if err == nil {
-			repo.MarkAsSent(uint(notification.ID))
-			fmt.Println("Email sent to:", notification.Email)
-		} else {
-			fmt.Println("Failed to send email:", err)
+		err = uc.SendNotification(notification)
+		if err != nil {
+			logger.WithFields(logrus.Fields{
+				"email": notification.Email,
+				"error": err.Error(),
+			}).Error("Failed to process notification")
 		}
 	}
 }
