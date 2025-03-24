@@ -9,3 +9,21 @@ Table users {
   updated_at timestamp
   deleted_at timestamp
 }
+
+Table email_verifications {
+  id integer [primary key]
+  email varchar(100) [ref: > users.email]
+  token varchar(255)
+  expired_at timestamp
+  used boolean [default: false]
+  created_at timestamp
+}
+
+Table password_resets {
+  id integer [primary key]
+  email varchar(100) [ref: > users.email]
+  token varchar(255)
+  expired_at timestamp
+  used boolean [default: false]
+  created_at timestamp
+}

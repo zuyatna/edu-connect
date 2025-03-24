@@ -12,6 +12,9 @@ import (
 type IUserRepository interface {
 	Register(user *model.User) error
 	Login(username, password string) (*model.User, error)
+	UpdateIsVerified(email string, verified bool) error
+	GetByEmail(email string) (*model.User, error)
+	UpdatePasswordByEmail(email, newPassword string) error
 }
 
 type userRepository struct {
@@ -82,4 +85,57 @@ func (r *userRepository) Login(email, password string) (*model.User, error) {
 	logger.WithField("email", email).Info("User logged in successfully")
 	return &user, nil
 
+}
+
+func (r *userRepository) UpdateIsVerified(email string, verified bool) error {
+	result := r.db.Model(&model.User{}).Where("email = ?", email).Update("is_verified", verified)
+	if result.Error != nil {
+		logger.WithFields(logrus.Fields{
+			"email": email,
+			"error": result.Error,
+		}).Error("Failed to update is_verified status")
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		logger.WithField("email", email).Warn("No user found to update verification")
+		return gorm.ErrRecordNotFound
+	}
+
+	logger.WithField("email", email).Info("User verification status updated")
+	return nil
+}
+
+func (r *userRepository) GetByEmail(email string) (*model.User, error) {
+	var user model.User
+	err := r.db.Where("email = ?", email).First(&user).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("user not found")
+		}
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (r *userRepository) UpdatePasswordByEmail(email, newPassword string) error {
+	hashed, err := hashPassword(newPassword)
+	if err != nil {
+		logger.WithError(err).Error("Failed to hash new password")
+		return err
+	}
+
+	result := r.db.Model(&model.User{}).Where("email = ?", email).Update("password", hashed)
+	if result.Error != nil {
+		logger.WithFields(logrus.Fields{
+			"email": email,
+			"error": result.Error,
+		}).Error("Failed to update password")
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+
+	logger.WithField("email", email).Info("User password updated successfully")
+	return nil
 }

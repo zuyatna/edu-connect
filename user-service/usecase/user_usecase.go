@@ -17,17 +17,21 @@ import (
 type IUserUseCase interface {
 	Register(user model.User) error
 	Login(email, password string) (string, error)
+	UpdateIsVerified(email string) error
+	ForgotPassword(email, newPassword string) error
 }
 
 type userUseCase struct {
-	userRepo repository.IUserRepository
+	userRepo            repository.IUserRepository
+	verificationUsecase IVerificationUseCase
 }
 
 var logger = logrus.New()
 
-func NewUserUseCase(userRepo repository.IUserRepository) IUserUseCase {
+func NewUserUseCase(userRepo repository.IUserRepository, verificationUC IVerificationUseCase) IUserUseCase {
 	return &userUseCase{
-		userRepo: userRepo,
+		userRepo:            userRepo,
+		verificationUsecase: verificationUC,
 	}
 }
 
@@ -107,6 +111,9 @@ func (u *userUseCase) Register(user model.User) error {
 	}
 
 	logger.WithField("email", user.Email).Info("User registered successfully")
+
+	_ = u.verificationUsecase.GenerateVerification(user.Email)
+
 	return nil
 }
 
@@ -152,4 +159,46 @@ func (u *userUseCase) Login(email, password string) (string, error) {
 
 	logger.WithField("email", email).Info("User logged in successfully")
 	return token, nil
+}
+
+func (u *userUseCase) UpdateIsVerified(email string) error {
+	err := u.userRepo.UpdateIsVerified(email, true)
+	if err != nil {
+		if err == customErr.ErrLoginEmailNotFound {
+			logger.WithField("email", email).Warn("Verification failed: Email not found")
+			return customErr.ErrLoginEmailNotFound
+		}
+		logger.WithField("email", email).Error("Verification failed: Internal error")
+		return customErr.ErrInternalServer
+	}
+
+	logger.WithField("email", email).Info("User verification updated successfully")
+	return nil
+}
+
+func (u *userUseCase) ForgotPassword(email, newPassword string) error {
+	if !isValidEmail(email) {
+		logger.WithField("email", email).Warn("Forgot password failed: Invalid email")
+		return customErr.ErrRegisterInvalidEmail
+	}
+
+	if !isValidPassword(newPassword) {
+		logger.WithField("email", email).Warn("Forgot password failed: Weak password")
+		return customErr.ErrRegisterInvalidPassword
+	}
+
+	user, err := u.userRepo.GetByEmail(email)
+	if err != nil {
+		logger.WithField("email", email).Warn("Forgot password failed: Email not found")
+		return customErr.ErrLoginEmailNotFound
+	}
+
+	err = u.userRepo.UpdatePasswordByEmail(user.Email, newPassword)
+	if err != nil {
+		logger.WithField("email", email).Error("Failed to update password")
+		return customErr.ErrInternalServer
+	}
+
+	logger.WithField("email", email).Info("User password updated successfully")
+	return nil
 }

@@ -20,3 +20,7 @@ var (
 	ErrLoginEmailNotFound   = errors.New("email doesn't exist")
 	ErrLoginInvalidPassword = errors.New("wrong password")
 )
+
+var (
+	ErrVerificationTokenInvalid = errors.New("token invalid")
+)

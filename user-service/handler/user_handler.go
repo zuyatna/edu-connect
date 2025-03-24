@@ -40,6 +40,11 @@ type UserInfoAPIResponse struct {
 	Data UserInfoResponse `json:"data"`
 }
 
+type ForgotPasswordRequest struct {
+	Email       string `json:"email"`
+	NewPassword string `json:"new_password"`
+}
+
 type ErrorResponse struct {
 	Error string `json:"error"`
 }
@@ -178,4 +183,67 @@ func (h *UserHandler) Login(c echo.Context) error {
 		Message: "Login successful",
 		Token:   token,
 	})
+}
+
+func (h *UserHandler) VerifyEmail(c echo.Context) error {
+	email := c.QueryParam("email")
+	if email == "" {
+		logger.Warn("Verify email failed: email query param is empty")
+		return c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Email is required"})
+	}
+
+	logger.WithField("email", email).Info("Verification request received")
+
+	err := h.userUseCase.UpdateIsVerified(email)
+	if err != nil {
+		var statusCode int
+		if errors.Is(err, customErr.ErrLoginEmailNotFound) {
+			statusCode = http.StatusNotFound
+		} else {
+			statusCode = http.StatusInternalServerError
+		}
+
+		logger.WithFields(logrus.Fields{
+			"email": email,
+			"error": err.Error(),
+		}).Error("Email verification failed")
+
+		return c.JSON(statusCode, ErrorResponse{Error: err.Error()})
+	}
+
+	logger.WithField("email", email).Info("User email verified successfully")
+	return c.JSON(http.StatusOK, map[string]string{"message": "Email verified successfully"})
+}
+
+func (h *UserHandler) ForgotPassword(c echo.Context) error {
+	var req ForgotPasswordRequest
+
+	if err := c.Bind(&req); err != nil {
+		logger.Warn("Invalid request body for ForgotPassword")
+		return c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid request body"})
+	}
+
+	logger.WithField("email", req.Email).Info("Forgot password request received")
+
+	err := h.userUseCase.ForgotPassword(req.Email, req.NewPassword)
+	if err != nil {
+		var statusCode int
+		if errors.Is(err, customErr.ErrRegisterInvalidEmail) || errors.Is(err, customErr.ErrRegisterInvalidPassword) {
+			statusCode = http.StatusBadRequest
+		} else if errors.Is(err, customErr.ErrLoginEmailNotFound) {
+			statusCode = http.StatusNotFound
+		} else {
+			statusCode = http.StatusInternalServerError
+		}
+
+		logger.WithFields(logrus.Fields{
+			"email": req.Email,
+			"error": err.Error(),
+		}).Error("Forgot password failed")
+
+		return c.JSON(statusCode, ErrorResponse{Error: err.Error()})
+	}
+
+	logger.WithField("email", req.Email).Info("Password reset successfully")
+	return c.JSON(http.StatusOK, map[string]string{"message": "Password has been reset"})
 }

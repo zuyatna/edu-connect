@@ -9,7 +9,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func Init(e *echo.Echo, userHandler handler.UserHandler) {
+func Init(e *echo.Echo,
+	userHandler handler.UserHandler,
+	verificationHandler handler.VerificationHandler,
+	passwordResetHandler handler.PasswordResetHandler) {
 
 	logger := logrus.New()
 	logger.SetFormatter(&logrus.JSONFormatter{})
@@ -18,8 +21,15 @@ func Init(e *echo.Echo, userHandler handler.UserHandler) {
 
 	v1 := e.Group("/v1")
 	v1.Use(middleware.LogrusMiddleware(logger))
-	user := v1.Group("/auth")
-	user.POST("/register", userHandler.Register)
-	user.POST("/login", userHandler.Login)
+
+	v1.POST("/register", userHandler.Register)
+
+	v1.POST("/login", userHandler.Login)
+
+	v1.GET("/verify", verificationHandler.Verify)
+
+	v1.POST("/forgot-password", passwordResetHandler.RequestResetPassword)
+
+	v1.POST("/reset-password", passwordResetHandler.ResetPassword)
 
 }
