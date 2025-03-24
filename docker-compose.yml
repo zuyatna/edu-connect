@@ -1,0 +1,35 @@
+version: '3'
+services:
+  user-service:
+    build: ./user-service-example
+    container_name: user-service
+    ports:
+      - "8080:8080"
+      - "50051:50051"
+    networks:
+      - edu-connect-network
+
+  institution-service:
+    build: ./institution-service
+    container_name: institution-service
+    ports:
+      - "8081:8081"
+      - "50052:50052"
+    networks:
+      - edu-connect-network
+
+  transaction-service:
+    build: ./transaction-service
+    container_name: transaction-service
+    ports:
+      - "8082:8082"
+      - "50053:50053"
+    depends_on:
+      - user-service
+      - institution-service
+    networks:
+      - edu-connect-network
+
+networks:
+  edu-connect-network:
+    driver: bridge
