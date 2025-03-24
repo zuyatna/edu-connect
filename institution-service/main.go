@@ -85,7 +85,7 @@ func main() {
 
 	grpcPort := os.Getenv("GRPC_PORT")
 	if grpcPort == "" {
-		grpcPort = "50061"
+		grpcPort = "50052"
 	}
 
 	go InitHTTPServer(errChan, port, grpcEndpoint, grpcPort)
