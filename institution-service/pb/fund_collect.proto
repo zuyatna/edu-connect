@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package fund_collect;
+
+option go_package = "pb/fund_collect";
+
+service FundCollectService {
+    rpc CreateFundCollect(CreateFundCollectRequest) returns (CreateFundCollectResponse) {}
+    rpc GetFundCollectByPostID(GetFundCollectByPostIDRequest) returns (GetFundCollectByPostIDResponse) {}
+}
+
+message CreateFundCollectRequest {
+    string post_id = 1;
+    string user_id = 2;
+    string user_name = 3;
+    float amount = 4;
+    string transaction_id = 5;
+}
+
+message GetFundCollectByPostIDRequest {
+    string post_id = 1;
+}
+
+message CreateFundCollectResponse {
+    string fund_collect_id = 1;
+    string post_id = 2;
+    string user_id = 3;
+    string user_name = 4;
+    float amount = 5;
+    string transaction_id = 6;
+}
+
+message FundCollectResponse {
+    string fund_collect_id = 1;
+    string post_id = 2;
+    string user_id = 3;
+    string user_name = 4;
+    float amount = 5;
+    string transaction_id = 6;
+}
+
+message GetFundCollectByPostIDResponse {
+    repeated FundCollectResponse funds = 1;
+}

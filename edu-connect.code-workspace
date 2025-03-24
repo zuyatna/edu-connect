@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "user-service-example"
+		},
+		{
+			"path": "institution-service"
+		},
+		{
+			"path": "transaction-service"
+		}
+	],
+	"settings": {}
+}
