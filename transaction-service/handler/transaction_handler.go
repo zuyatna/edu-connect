@@ -104,22 +104,6 @@ func (s *TransactionServer) CreateTransaction(ctx context.Context, req *pbTransa
 		return nil, status.Errorf(codes.Internal, "failed to update transaction with payment details: %v", err)
 	}
 
-	// userName := userResp.Name
-	// if req.HideName {
-	// 	userName = "Anonymous"
-	// }
-
-	// _, err = s.fundCollectClient.CreateFundCollect(outCtx, &pbFuncCollect.CreateFundCollectRequest{
-	// 	PostId:        req.PostId,
-	// 	UserId:        authenticatedUserID,
-	// 	UserName:      userName,
-	// 	Amount:        req.Amount,
-	// 	TransactionId: transaction.TransactionID.String(),
-	// })
-	// if err != nil {
-	// 	return nil, status.Errorf(codes.Internal, "failed to create fund collect: %v", err)
-	// }
-
 	return &pbTransaction.CreateTransactionResponse{
 		TransactionId: transaction.TransactionID.String(),
 		PaymentId:     transaction.PaymentID,
