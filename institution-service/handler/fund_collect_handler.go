@@ -28,6 +28,7 @@ func NewFundCollectHandler(fundCollectUsecase usecase.IFundCollectUsecase, postU
 		postUsecase:        postUsecase,
 	}
 }
+
 func (s *FundCollectServer) CreateFundCollect(ctx context.Context, req *pbFundCollect.CreateFundCollectRequest) (*pbFundCollect.CreateFundCollectResponse, error) {
 	postID, err := uuid.Parse(req.PostId)
 	if err != nil {
@@ -51,7 +52,6 @@ func (s *FundCollectServer) CreateFundCollect(ctx context.Context, req *pbFundCo
 	if err != nil {
 		return nil, err
 	}
-
 	_, err = s.postUsecase.AddPostFundAchieved(ctx, fund_collect.PostID, fund_collect.Amount)
 	if err != nil {
 		return nil, err
