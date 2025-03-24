@@ -1,0 +1,25 @@
+steps:
+  # Build user-service
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/proven-mind-385501/user-service-example', './user-service-example']
+  
+  # Build institution-service
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/proven-mind-385501/institution-service', './institution-service']
+  
+  # Build transaction-service
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/proven-mind-385501/transaction-service', './transaction-service']
+
+  # Push images to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/proven-mind-385501/user-service-example']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/proven-mind-385501/institution-service']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/proven-mind-385501/transaction-service']
+
+images:
+  - 'gcr.io/proven-mind-385501/user-service-example'
+  - 'gcr.io/proven-mind-385501/institution-service'
+  - 'gcr.io/proven-mind-385501/transaction-service'
