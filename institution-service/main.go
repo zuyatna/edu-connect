@@ -25,6 +25,7 @@ import (
 	"github.com/zuyatna/edu-connect/institution-service/usecase"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -50,11 +51,17 @@ func main() {
 		panic("failed to connect to database!")
 	}
 
-	db.AutoMigrate(
-		&model.Post{},
-		&model.Institution{},
-	)
-	fmt.Println("Database migrated!")
+	if err := db.AutoMigrate(&model.Institution{}); err != nil {
+		logger.Fatalf("Failed to migrate Institution table: %v", err)
+	}
+	if err := db.AutoMigrate(&model.Post{}); err != nil {
+		logger.Fatalf("Failed to migrate Post table: %v", err)
+	}
+	if err := db.AutoMigrate(&model.FundCollect{}); err != nil {
+		logger.Fatalf("Failed to migrate FundCollect table: %v", err)
+	}
+
+	fmt.Println("Database migrated successfully!")
 
 	sigChan := make(chan os.Signal, 1)
 	errChan := make(chan error, 1)
@@ -97,7 +104,7 @@ func main() {
 
 func InitHTTPServer(errChan chan error, port, grpcEndpoint, grpcPort string) {
 	conn, err := grpc.NewClient(grpcEndpoint+":"+grpcPort,
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
 		panic(err)
@@ -106,6 +113,7 @@ func InitHTTPServer(errChan chan error, port, grpcEndpoint, grpcPort string) {
 
 	insClient := institution.NewInstitutionServiceClient(conn)
 	postClient := post.NewPostServiceClient(conn)
+	fundClient := fund_collect.NewFundCollectServiceClient(conn)
 
 	e := echo.New()
 
@@ -123,12 +131,15 @@ func InitHTTPServer(errChan chan error, port, grpcEndpoint, grpcPort string) {
 	postRoutes := routes.NewPostHTTPHandler(postClient)
 	postRoutes.Routes(e)
 
+	fundCollectRoutes := routes.NewFundCollectHTTPHandler(fundClient)
+	fundCollectRoutes.Routes(e)
+
 	log.Info("Starting HTTP Server at port: ", port)
 	errChan <- e.Start(":" + port)
 }
 
-func InitGRPCServer(db *gorm.DB, errChan chan error, grcpEndpoint, grpcPort string) {
-	lis, err := net.Listen("tcp", grcpEndpoint+":"+grpcPort)
+func InitGRPCServer(db *gorm.DB, errChan chan error, grpcEndpoint, grpcPort string) {
+	lis, err := net.Listen("tcp", grpcEndpoint+":"+grpcPort)
 	if err != nil {
 		panic(err)
 	}
@@ -159,7 +170,7 @@ func InitGRPCServer(db *gorm.DB, errChan chan error, grcpEndpoint, grpcPort stri
 	post.RegisterPostServiceServer(grpcServer, postHandler)
 	fund_collect.RegisterFundCollectServiceServer(grpcServer, fundCollectHandler)
 
-	log.Info("Starting gRPC Server at", grcpEndpoint, ":", grpcPort)
+	log.Info("Starting gRPC Server at", grpcEndpoint, ":", grpcPort)
 	if err := grpcServer.Serve(lis); err != nil {
 		errChan <- err
 	}
