@@ -8,9 +8,9 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func GenerateInstitutionToken(userID string) (string, error) {
+func GenerateInstitutionToken(institutionID string) (string, error) {
 	claims := jwt.MapClaims{}
-	claims["institution_id"] = userID
+	claims["institution_id"] = institutionID
 	claims["exp"] = time.Now().Add(time.Hour * 1).Unix()
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
