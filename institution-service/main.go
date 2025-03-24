@@ -17,6 +17,7 @@ import (
 	"github.com/zuyatna/edu-connect/institution-service/handler"
 	"github.com/zuyatna/edu-connect/institution-service/middlewares"
 	"github.com/zuyatna/edu-connect/institution-service/model"
+	"github.com/zuyatna/edu-connect/institution-service/pb/fund_collect"
 	"github.com/zuyatna/edu-connect/institution-service/pb/institution"
 	"github.com/zuyatna/edu-connect/institution-service/pb/post"
 	"github.com/zuyatna/edu-connect/institution-service/repository"
@@ -148,10 +149,15 @@ func InitGRPCServer(db *gorm.DB, errChan chan error, grcpEndpoint, grpcPort stri
 	postUsecase := usecase.NewPostUsecase(postRepo)
 	postHandler := handler.NewPostHandler(postUsecase)
 
+	fundCollectRepo := repository.NewFundCollectRepository(db)
+	fundCollectUsecase := usecase.NewFundCollectUsecase(fundCollectRepo)
+	fundCollectHandler := handler.NewFundCollectHandler(fundCollectUsecase)
+
 	grpcServer := grpc.NewServer(opts...)
 
 	institution.RegisterInstitutionServiceServer(grpcServer, insHandler)
 	post.RegisterPostServiceServer(grpcServer, postHandler)
+	fund_collect.RegisterFundCollectServiceServer(grpcServer, fundCollectHandler)
 
 	log.Info("Starting gRPC Server at", grcpEndpoint, ":", grpcPort)
 	if err := grpcServer.Serve(lis); err != nil {
