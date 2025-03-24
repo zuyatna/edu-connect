@@ -82,9 +82,18 @@ func main() {
 }
 
 func InitHTTPServer(errChan chan error, port, grpcEndpoint, grpcPort string) {
-	conn, err := grpc.NewClient(grpcEndpoint+":"+grpcPort,
-		grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})),
-	)
+	var opts []grpc.DialOption
+
+	if os.Getenv("ENV") == "production" {
+		tlsConfig := &tls.Config{
+			InsecureSkipVerify: true,
+		}
+		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)))
+	} else {
+		opts = append(opts, grpc.WithInsecure())
+	}
+
+	conn, err := grpc.Dial(grpcEndpoint+":"+grpcPort, opts...)
 	if err != nil {
 		panic(err)
 	}
@@ -116,10 +125,10 @@ func InitGRPCServer(db *gorm.DB, errChan chan error, grcpEndpoint, grpcPort stri
 	}
 
 	var opts []grpc.ServerOption
-	if os.Getenv("ENV") == "production" {
-		creds := credentials.NewServerTLSFromCert(&tls.Certificate{})
-		opts = append(opts, grpc.Creds(creds))
-	}
+	// if os.Getenv("ENV") == "production" {
+	// 	creds := credentials.NewServerTLSFromCert(&tls.Certificate{})
+	// 	opts = append(opts, grpc.Creds(creds))
+	// }
 
 	opts = append(opts, grpc.UnaryInterceptor(middlewares.SelectiveAuthInterceptor))
 

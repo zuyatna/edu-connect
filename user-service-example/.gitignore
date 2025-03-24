@@ -29,3 +29,5 @@ mocks/
 
 # Compiled protobuf files
 *.pb.go
+
+vendor/
