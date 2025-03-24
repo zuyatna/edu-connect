@@ -12,6 +12,7 @@ import (
 
 type IFundCollectHandler interface {
 	CreateFundCollect(ctx context.Context, fund_collect *model.FundCollect) (*model.FundCollect, error)
+	GetFundCollectByPostID(ctx context.Context, post_id string) ([]model.FundCollect, error)
 }
 
 type FundCollectServer struct {
@@ -63,5 +64,28 @@ func (s *FundCollectServer) CreateFundCollect(ctx context.Context, req *pbFundCo
 		UserName:      fund_collect.UserName,
 		Amount:        float32(fund_collect.Amount),
 		TransactionId: fund_collect.TransactionID,
+	}, nil
+}
+
+func (s *FundCollectServer) GetFundCollectByPostID(ctx context.Context, req *pbFundCollect.GetFundCollectByPostIDRequest) (*pbFundCollect.GetFundCollectByPostIDResponse, error) {
+	fund_collects, err := s.fundCollectUsecase.GetFundCollectByPostID(ctx, req.PostId)
+	if err != nil {
+		return nil, err
+	}
+
+	var fund_collect_responses []*pbFundCollect.FundCollectResponse
+	for _, fund_collect := range fund_collects {
+		fund_collect_responses = append(fund_collect_responses, &pbFundCollect.FundCollectResponse{
+			FundCollectId: fund_collect.FundCollectID.String(),
+			PostId:        fund_collect.PostID.String(),
+			UserId:        fund_collect.UserID.String(),
+			UserName:      fund_collect.UserName,
+			Amount:        float32(fund_collect.Amount),
+			TransactionId: fund_collect.TransactionID,
+		})
+	}
+
+	return &pbFundCollect.GetFundCollectByPostIDResponse{
+		Funds: fund_collect_responses,
 	}, nil
 }
