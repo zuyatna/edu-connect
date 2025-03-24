@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"fmt"
 	"userService/model"
 
 	"github.com/sirupsen/logrus"
@@ -15,6 +16,7 @@ type IUserRepository interface {
 	UpdateIsVerified(email string, verified bool) error
 	GetByEmail(email string) (*model.User, error)
 	UpdatePasswordByEmail(email, newPassword string) error
+	UpdateBalanceByEmail(email string, balance float64) error
 }
 
 type userRepository struct {
@@ -137,5 +139,40 @@ func (r *userRepository) UpdatePasswordByEmail(email, newPassword string) error 
 	}
 
 	logger.WithField("email", email).Info("User password updated successfully")
+	return nil
+}
+
+func (r *userRepository) UpdateBalanceByEmail(email string, balance float64) error {
+
+	var user model.User
+	if err := r.db.Where("email = ?", email).First(&user).Error; err != nil {
+		return err
+	}
+
+	if user.Balance+balance < 0 {
+		return fmt.Errorf("insufficient balance")
+	}
+
+	result := r.db.Model(&model.User{}).
+		Where("email = ?", email).
+		Update("balance", gorm.Expr("balance + ?", balance))
+
+	if result.Error != nil {
+		logger.WithFields(logrus.Fields{
+			"email": email,
+			"error": result.Error,
+		}).Error("Failed to update balance")
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		logger.WithField("email", email).Warn("No user found to update balance")
+		return gorm.ErrRecordNotFound
+	}
+
+	logger.WithFields(logrus.Fields{
+		"email":   email,
+		"balance": balance,
+	}).Info("User balance updated successfully")
 	return nil
 }

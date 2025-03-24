@@ -2,7 +2,9 @@ package main
 
 import (
 	"os"
+	"sync"
 	"userService/config"
+	"userService/grpc"
 	"userService/handler"
 	"userService/queue"
 	"userService/repository"
@@ -39,8 +41,30 @@ func main() {
 	verificationHandler := handler.NewVerificationHandler(verificationUC)
 	passwordResetHandler := handler.NewPasswordResetHandler(passwordResetUC)
 
-	e := echo.New()
-	route.Init(e, userHandler, *verificationHandler, *passwordResetHandler)
-	e.Logger.Fatal(e.Start(":" + os.Getenv("PORT")))
+	grpcPort := os.Getenv("GRPC_PORT")
+
+	if grpcPort == "" {
+		grpcPort = "50051"
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		grpc.StartGRPCServer(userRepo, grpcPort)
+	}()
+
+	go func() {
+		defer wg.Done()
+
+		e := echo.New()
+		route.Init(e, userHandler, *verificationHandler, *passwordResetHandler)
+
+		e.Logger.Fatal(e.Start(":" + os.Getenv("PORT")))
+
+	}()
+
+	wg.Wait()
 
 }

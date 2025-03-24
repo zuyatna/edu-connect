@@ -11,7 +11,7 @@ type User struct {
 	Name       string         `gorm:"type:varchar(50);not null" json:"name"`
 	Email      string         `gorm:"type:varchar(100);unique;not null" json:"email"`
 	Password   string         `gorm:"type:varchar(255);not null" json:"password"`
-	Balance    float32        `json:"balance"`
+	Balance    float64        `json:"balance"`
 	IsVerified bool           `json:"is_verified"`
 	CreatedAt  time.Time      `json:"-"`
 	UpdatedAt  time.Time      `json:"-"`
