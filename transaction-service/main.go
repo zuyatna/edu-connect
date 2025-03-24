@@ -102,12 +102,17 @@ func getServiceConnections() (*grpc.ClientConn, *grpc.ClientConn) {
 		grpcUserPort = "50051"
 	}
 
-	userConn, err := grpc.Dial(grpcUserEndpoint+":"+grpcUserPort,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
-	if err != nil {
-		log.Fatalf("Failed to connect to user service: %v", err)
+	// For Cloud Run, use TLS credentials
+	var creds credentials.TransportCredentials
+	if os.Getenv("ENV") == "production" {
+		creds = credentials.NewClientTLSFromCert(nil, "")
+	} else {
+		creds = insecure.NewCredentials()
 	}
+
+	userConn, err := grpc.Dial(grpcUserEndpoint+":"+grpcUserPort,
+		grpc.WithTransportCredentials(creds),
+	)
 
 	grpcInstitutionEndpoint := os.Getenv("GRPC_INSTITUTION_ENDPOINT")
 	if grpcInstitutionEndpoint == "" {
@@ -119,7 +124,7 @@ func getServiceConnections() (*grpc.ClientConn, *grpc.ClientConn) {
 	}
 
 	fundCollectConn, err := grpc.Dial(grpcInstitutionEndpoint+":"+grpcInstitutionPort,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithTransportCredentials(creds),
 	)
 	if err != nil {
 		log.Fatalf("Failed to connect to fund collect service: %v", err)
