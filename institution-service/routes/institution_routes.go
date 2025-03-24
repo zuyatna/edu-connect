@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -36,7 +37,9 @@ func (h *InstitutionHTTPHandler) RegisterInstitution(c echo.Context) error {
 		})
 	}
 
-	res, err := h.institutionClient.RegisterInstitution(c.Request().Context(), &pb.RegisterInstitutionRequest{
+	cleanCtx := context.Background()
+
+	res, err := h.institutionClient.RegisterInstitution(cleanCtx, &pb.RegisterInstitutionRequest{
 		Name:     req.Name,
 		Email:    req.Email,
 		Password: req.Password,
@@ -61,7 +64,9 @@ func (h *InstitutionHTTPHandler) LoginInstitution(c echo.Context) error {
 		})
 	}
 
-	res, err := h.institutionClient.LoginInstitution(c.Request().Context(), &pb.LoginInstitutionRequest{
+	cleanCtx := context.Background()
+
+	res, err := h.institutionClient.LoginInstitution(cleanCtx, &pb.LoginInstitutionRequest{
 		Email:    req.Email,
 		Password: req.Password,
 	})
@@ -123,6 +128,11 @@ func (h *InstitutionHTTPHandler) DeleteInstitution(c echo.Context) error {
 
 func AuthMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		path := c.Request().URL.Path
+		if path == "/institution/register" || path == "/institution/login" {
+			return next(c)
+		}
+
 		token := c.Request().Header.Get("Authorization")
 		if token == "" {
 			return echo.NewHTTPError(http.StatusUnauthorized, httputil.HTTPError{
