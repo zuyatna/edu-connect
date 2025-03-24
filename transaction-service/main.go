@@ -102,7 +102,7 @@ func getServiceConnections() (*grpc.ClientConn, *grpc.ClientConn) {
 		grpcUserPort = "50051"
 	}
 
-	userConn, err := grpc.NewClient(grpcUserEndpoint+":"+grpcUserPort,
+	userConn, err := grpc.Dial(grpcUserEndpoint+":"+grpcUserPort,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {

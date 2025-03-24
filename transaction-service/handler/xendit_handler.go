@@ -11,6 +11,7 @@ import (
 	pbUser "github.com/zuyatna/edu-connect/transaction-service/pb/user"
 	"github.com/zuyatna/edu-connect/transaction-service/usecase"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"google.golang.org/grpc/metadata"
 )
 
 type PaymentCallbackHandler struct {
@@ -70,19 +71,27 @@ func (h *PaymentCallbackHandler) HandleCallback(w http.ResponseWriter, r *http.R
 
 		outCtx := r.Context()
 
-		// userResp, err := h.userClient.GetUserByID(outCtx, &pbUser.GetUserByIDRequest{
-		// 	Id: transaction.UserID,
-		// })
-		// if err != nil {
-		// 	log.Printf("Failed to get user: %v", err)
-		// }
+		token := r.Header.Get("Authorization")
+		if token == "" {
+			token = "Bearer your-service-token-here"
+		}
 
-		// userName := userResp.Name
+		md := metadata.Pairs("authorization", token)
+		authCtx := metadata.NewOutgoingContext(outCtx, md)
+
+		userResp, err := h.userClient.GetUserByID(authCtx, &pbUser.GetUserByIDRequest{
+			Id: transaction.UserID,
+		})
+		if err != nil {
+			log.Printf("Failed to get user: %v", err)
+		}
+
+		userName := userResp.Name
 
 		_, err = h.fundCollectClient.CreateFundCollect(outCtx, &pbFuncCollect.CreateFundCollectRequest{
 			PostId:        transaction.PostID,
 			UserId:        transaction.UserID,
-			UserName:      "anonymous",
+			UserName:      userName,
 			Amount:        float32(transaction.Amount),
 			TransactionId: transaction.TransactionID.Hex(),
 		})
