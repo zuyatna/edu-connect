@@ -4,32 +4,18 @@ import (
 	"context"
 	"strings"
 
-	"github.com/zuyatna/edu-connect/institution-service/utils"
+	"github.com/zuyatna/edu-connect/transaction-service/utils"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
-type contextKey string
+type ContextKey string
 
 const (
-	InstitutionIDKey contextKey = "institution_id"
+	UserIDKey ContextKey = "user_id"
 )
-
-var publicEndpoints = map[string]bool{
-	"/institution.InstitutionService/RegisterInstitution": true,
-	"/institution.InstitutionService/LoginInstitution":    true,
-	"/fund_collect.FundCollectService/CreateFundCollect":  true,
-}
-
-func SelectiveAuthInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-	if publicEndpoints[info.FullMethod] {
-		return handler(ctx, req)
-	}
-
-	return AuthGRPCInterceptor(ctx, req, info, handler)
-}
 
 func AuthGRPCInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
@@ -53,8 +39,8 @@ func AuthGRPCInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryS
 		return nil, status.Errorf(codes.Unauthenticated, "invalid token: %v", err)
 	}
 
-	institutionID := (*claims)["institution_id"].(string)
-	newCtx := context.WithValue(ctx, InstitutionIDKey, institutionID)
+	userID := (*claims)["user_id"].(string)
+	newCtx := context.WithValue(ctx, UserIDKey, userID)
 
 	return handler(newCtx, req)
 }

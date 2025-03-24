@@ -9,6 +9,7 @@ import (
 
 type IFundCollectRepository interface {
 	CreateFundCollect(ctx context.Context, fund_collect *model.FundCollect) (*model.FundCollect, error)
+	GetFundCollectByPostID(ctx context.Context, post_id string) ([]model.FundCollect, error)
 }
 
 type FundCollectRepository struct {
@@ -27,4 +28,14 @@ func (r *FundCollectRepository) CreateFundCollect(ctx context.Context, fund_coll
 	}
 
 	return fund_collect, nil
+}
+
+func (r *FundCollectRepository) GetFundCollectByPostID(ctx context.Context, post_id string) ([]model.FundCollect, error) {
+	var fund_collects []model.FundCollect
+
+	if err := r.db.Where("post_id = ?", post_id).Find(&fund_collects).Error; err != nil {
+		return nil, err
+	}
+
+	return fund_collects, nil
 }

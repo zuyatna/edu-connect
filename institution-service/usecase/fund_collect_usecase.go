@@ -6,17 +6,19 @@ import (
 	"strings"
 
 	"github.com/zuyatna/edu-connect/institution-service/model"
+	"github.com/zuyatna/edu-connect/institution-service/repository"
 )
 
 type IFundCollectUsecase interface {
 	CreateFundCollect(ctx context.Context, fund_collect *model.FundCollect) (*model.FundCollect, error)
+	GetFundCollectByPostID(ctx context.Context, post_id string) ([]model.FundCollect, error)
 }
 
 type FundCollectUsecase struct {
-	fundCollectRepository IFundCollectUsecase
+	fundCollectRepository repository.IFundCollectRepository
 }
 
-func NewFundCollectUsecase(fundCollectRepository IFundCollectUsecase) *FundCollectUsecase {
+func NewFundCollectUsecase(fundCollectRepository repository.IFundCollectRepository) *FundCollectUsecase {
 	return &FundCollectUsecase{
 		fundCollectRepository: fundCollectRepository,
 	}
@@ -43,4 +45,8 @@ func (u *FundCollectUsecase) CreateFundCollect(ctx context.Context, fund_collect
 	}
 
 	return u.fundCollectRepository.CreateFundCollect(ctx, fund_collect)
+}
+
+func (u *FundCollectUsecase) GetFundCollectByPostID(ctx context.Context, post_id string) ([]model.FundCollect, error) {
+	return u.fundCollectRepository.GetFundCollectByPostID(ctx, post_id)
 }

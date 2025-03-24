@@ -2,29 +2,17 @@ package utils
 
 import (
 	"os"
-	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/joho/godotenv"
 )
 
-func GenerateInstitutionToken(institutionID string) (string, error) {
-	claims := jwt.MapClaims{}
-	claims["institution_id"] = institutionID
-	claims["exp"] = time.Now().Add(time.Hour * 1).Unix()
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
+func ValidateToken(tokenString string) (*jwt.MapClaims, error) {
 	err := godotenv.Load(".env")
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	jwtKey := []byte(os.Getenv("JWT_SECRET"))
 
-	return token.SignedString(jwtKey)
-}
-
-func ValidateToken(tokenString string) (*jwt.MapClaims, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		return []byte(os.Getenv("JWT_SECRET")), nil
 	})
