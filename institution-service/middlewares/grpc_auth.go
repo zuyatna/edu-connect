@@ -20,6 +20,7 @@ const (
 var publicEndpoints = map[string]bool{
 	"/institution.InstitutionService/RegisterInstitution": true,
 	"/institution.InstitutionService/LoginInstitution":    true,
+	"/fund_collect.FundCollectService/CreateFundCollect":  true,
 }
 
 func SelectiveAuthInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
