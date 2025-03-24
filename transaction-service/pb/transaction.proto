@@ -23,4 +23,6 @@ message CreateTransactionResponse {
     float amount = 4;
     string account_number = 5;
     string account_name = 6;
+    string payment_url = 7;
+    string status = 8;
 }

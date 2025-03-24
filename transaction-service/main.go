@@ -77,55 +77,22 @@ func main() {
 		grpcPort = "50053"
 	}
 
-	go InitHTTPServer(errChan, port, grpcEndpoint, grpcPort)
-	go InitGRPCServer(db, errChan, grpcEndpoint, grpcPort)
+	transactionRepo := repository.NewTransactionRepository(db)
+	transactionUsecase := usecase.NewTransactionUsecase(transactionRepo)
+
+	userConn, fundCollectConn := getServiceConnections()
+
+	go InitHTTPServer(errChan, port, grpcEndpoint, grpcPort, transactionUsecase, userConn, fundCollectConn)
+	go InitGRPCServer(db, errChan, grpcEndpoint, grpcPort, transactionUsecase, userConn, fundCollectConn)
 
 	<-quitChan
 	logger.Info("Shutting down...")
+
+	userConn.Close()
+	fundCollectConn.Close()
 }
 
-func InitHTTPServer(errChan chan error, port, grpcEndpoint, grpcPort string) {
-	conn, err := grpc.NewClient(grpcEndpoint+":"+grpcPort,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
-	if err != nil {
-		panic(err)
-	}
-	defer conn.Close()
-
-	transactionClient := transaction.NewTransactionServiceClient(conn)
-
-	e := echo.New()
-
-	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
-		Format: "${time_rfc3339} ${remote_ip} ${method} ${uri} ${status} ${latency_human}\n",
-	}))
-
-	e.GET("/", func(c echo.Context) error {
-		return c.String(http.StatusOK, "OK")
-	})
-
-	transactionRoutes := routes.NewTransactionHTTPHandler(transactionClient)
-	transactionRoutes.Routes(e)
-
-	log.Info("Starting HTTP Server at port: ", port)
-	errChan <- e.Start(":" + port)
-}
-
-func InitGRPCServer(db *mongo.Database, errChan chan error, grpcEndpoint, grpcPort string) {
-	transactionListener, err := net.Listen("tcp", grpcEndpoint+":"+grpcPort)
-	if err != nil {
-		panic(err)
-	}
-
-	var opts []grpc.ServerOption
-	if os.Getenv("ENV") == "production" {
-		creds := credentials.NewServerTLSFromCert(&tls.Certificate{})
-		opts = append(opts, grpc.Creds(creds))
-	}
-
-	opts = append(opts, grpc.UnaryInterceptor(middlewares.AuthGRPCInterceptor))
-
+func getServiceConnections() (*grpc.ClientConn, *grpc.ClientConn) {
 	grpcUserEndpoint := os.Getenv("GRPC_USER_ENDPOINT")
 	if grpcUserEndpoint == "" {
 		grpcUserEndpoint = "localhost"
@@ -141,9 +108,6 @@ func InitGRPCServer(db *mongo.Database, errChan chan error, grpcEndpoint, grpcPo
 	if err != nil {
 		log.Fatalf("Failed to connect to user service: %v", err)
 	}
-	defer userConn.Close()
-
-	userClient := pbUser.NewUserServiceClient(userConn)
 
 	grpcInstitutionEndpoint := os.Getenv("GRPC_INSTITUTION_ENDPOINT")
 	if grpcInstitutionEndpoint == "" {
@@ -154,18 +118,85 @@ func InitGRPCServer(db *mongo.Database, errChan chan error, grpcEndpoint, grpcPo
 		grpcInstitutionPort = "50052"
 	}
 
-	fundCollectConn, err := grpc.NewClient(grpcInstitutionEndpoint+":"+grpcInstitutionPort,
+	fundCollectConn, err := grpc.Dial(grpcInstitutionEndpoint+":"+grpcInstitutionPort,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
 		log.Fatalf("Failed to connect to fund collect service: %v", err)
 	}
-	defer fundCollectConn.Close()
 
+	return userConn, fundCollectConn
+}
+
+func InitHTTPServer(
+	errChan chan error,
+	port,
+	grpcEndpoint,
+	grpcPort string,
+	transactionUsecase usecase.ITransactionUsecase,
+	userConn *grpc.ClientConn,
+	fundCollectConn *grpc.ClientConn,
+) {
+	conn, err := grpc.Dial(grpcEndpoint+":"+grpcPort,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		panic(err)
+	}
+	defer conn.Close()
+
+	transactionClient := transaction.NewTransactionServiceClient(conn)
 	fundCollectClient := pbFuncCollect.NewFundCollectServiceClient(fundCollectConn)
 
-	transactionRepo := repository.NewTransactionRepository(db)
-	transactionUsecase := usecase.NewTransactionUsecase(transactionRepo)
+	e := echo.New()
+
+	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
+		Format: "${time_rfc3339} ${remote_ip} ${method} ${uri} ${status} ${latency_human}\n",
+	}))
+
+	e.GET("/", func(c echo.Context) error {
+		return c.String(http.StatusOK, "OK")
+	})
+
+	userClient := pbUser.NewUserServiceClient(userConn)
+	paymentCallbackHandler := handler.NewPaymentCallbackHandler(transactionUsecase, userClient, fundCollectClient)
+	e.POST("/api/payment/callback", func(c echo.Context) error {
+		paymentCallbackHandler.HandleCallback(c.Response().Writer, c.Request())
+		return nil
+	})
+
+	transactionRoutes := routes.NewTransactionHTTPHandler(transactionClient)
+	transactionRoutes.Routes(e)
+
+	log.Info("Starting HTTP Server at port: ", port)
+	errChan <- e.Start(":" + port)
+}
+
+func InitGRPCServer(
+	db *mongo.Database,
+	errChan chan error,
+	grpcEndpoint,
+	grpcPort string,
+	transactionUsecase usecase.ITransactionUsecase,
+	userConn *grpc.ClientConn,
+	fundCollectConn *grpc.ClientConn,
+) {
+	transactionListener, err := net.Listen("tcp", grpcEndpoint+":"+grpcPort)
+	if err != nil {
+		panic(err)
+	}
+
+	var opts []grpc.ServerOption
+	if os.Getenv("ENV") == "production" {
+		creds := credentials.NewServerTLSFromCert(&tls.Certificate{})
+		opts = append(opts, grpc.Creds(creds))
+	}
+
+	opts = append(opts, grpc.UnaryInterceptor(middlewares.AuthGRPCInterceptor))
+
+	userClient := pbUser.NewUserServiceClient(userConn)
+	fundCollectClient := pbFuncCollect.NewFundCollectServiceClient(fundCollectConn)
+
 	transactionHandler := handler.NewTransactionHandler(transactionUsecase, userClient, fundCollectClient)
 
 	transactionServer := grpc.NewServer(opts...)

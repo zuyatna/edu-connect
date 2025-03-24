@@ -12,6 +12,8 @@ import (
 
 type ITransactionRepository interface {
 	CreateTransaction(ctx context.Context, transaction *model.Transaction) (*model.Transaction, error)
+	GetTransactionByID(ctx context.Context, transactionID primitive.ObjectID) (*model.Transaction, error)
+	UpdateTransaction(ctx context.Context, transaction *model.Transaction) (*model.Transaction, error)
 }
 
 type TransactionRepository struct {
@@ -41,6 +43,43 @@ func (r *TransactionRepository) CreateTransaction(ctx context.Context, transacti
 	}
 
 	transaction.TransactionID = result.InsertedID.(primitive.ObjectID)
+
+	return transaction, nil
+}
+
+func (r *TransactionRepository) GetTransactionByID(ctx context.Context, transactionID primitive.ObjectID) (*model.Transaction, error) {
+	var transaction model.Transaction
+
+	filter := bson.D{
+		{Key: "_id", Value: transactionID},
+	}
+
+	err := r.transactionCollection.FindOne(ctx, filter).Decode(&transaction)
+	if err != nil {
+		return nil, err
+	}
+
+	return &transaction, nil
+}
+
+func (r *TransactionRepository) UpdateTransaction(ctx context.Context, transaction *model.Transaction) (*model.Transaction, error) {
+	filter := bson.D{
+		{Key: "_id", Value: transaction.TransactionID},
+	}
+
+	update := bson.D{
+		{Key: "$set", Value: bson.D{
+			{Key: "payment_id", Value: transaction.PaymentID},
+			{Key: "payment_url", Value: transaction.PaymentURL},
+			{Key: "payment_status", Value: transaction.PaymentStatus},
+			{Key: "updated_at", Value: time.Now().Format(time.RFC3339)},
+		}},
+	}
+
+	_, err := r.transactionCollection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return nil, err
+	}
 
 	return transaction, nil
 }

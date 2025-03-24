@@ -6,10 +6,13 @@ import (
 	"strings"
 
 	"github.com/zuyatna/edu-connect/transaction-service/model"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type ITransactionUsecase interface {
 	CreateTransaction(ctx context.Context, transaction *model.Transaction) (*model.Transaction, error)
+	GetTransactionByID(ctx context.Context, transactionID primitive.ObjectID) (*model.Transaction, error)
+	UpdateTransaction(ctx context.Context, transaction *model.Transaction) (*model.Transaction, error)
 }
 
 type TransactionUsecase struct {
@@ -43,4 +46,12 @@ func (u *TransactionUsecase) CreateTransaction(ctx context.Context, transaction 
 	}
 
 	return u.transactionRepository.CreateTransaction(ctx, transaction)
+}
+
+func (u *TransactionUsecase) GetTransactionByID(ctx context.Context, transactionID primitive.ObjectID) (*model.Transaction, error) {
+	return u.transactionRepository.GetTransactionByID(ctx, transactionID)
+}
+
+func (u *TransactionUsecase) UpdateTransaction(ctx context.Context, transaction *model.Transaction) (*model.Transaction, error) {
+	return u.transactionRepository.UpdateTransaction(ctx, transaction)
 }
