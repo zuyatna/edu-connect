@@ -83,7 +83,7 @@ func main() {
 
 func InitHTTPServer(errChan chan error, port, grpcEndpoint, grpcPort string) {
 	conn, err := grpc.NewClient(grpcEndpoint+":"+grpcPort,
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})),
 	)
 	if err != nil {
 		panic(err)
