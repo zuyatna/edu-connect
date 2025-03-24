@@ -151,7 +151,7 @@ func InitGRPCServer(db *gorm.DB, errChan chan error, grcpEndpoint, grpcPort stri
 
 	fundCollectRepo := repository.NewFundCollectRepository(db)
 	fundCollectUsecase := usecase.NewFundCollectUsecase(fundCollectRepo)
-	fundCollectHandler := handler.NewFundCollectHandler(fundCollectUsecase)
+	fundCollectHandler := handler.NewFundCollectHandler(fundCollectUsecase, postUsecase)
 
 	grpcServer := grpc.NewServer(opts...)
 
