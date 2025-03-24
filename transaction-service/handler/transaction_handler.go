@@ -45,6 +45,7 @@ func (s *TransactionServer) CreateTransaction(ctx context.Context, req *pbTransa
 
 	transaction_model := &model.Transaction{
 		UserID:        authenticatedUserID,
+		PostID:        req.PostId,
 		PaymentID:     "00000000-0000-0000-0000-000000000000",
 		Amount:        float64(req.Amount),
 		AccountNumber: req.AccountNumber,
