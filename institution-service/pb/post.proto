@@ -1,0 +1,71 @@
+syntax = "proto3";
+
+package post;
+
+option go_package = "pb/post";
+
+service PostService {
+    rpc CreatePost(CreatePostRequest) returns (PostResponse) {}
+    rpc GetPostByID(GetPostByIDRequest) returns (PostResponse) {}
+    rpc GetAllPostByInstitutionID(GetAllPostByInstitutionIDRequest) returns (GetAllPostByInstitutionIDResponse) {}
+    rpc UpdatePost(UpdatePostRequest) returns (PostResponse) {}
+    rpc AddPostFundAchieved(AddPostFundAchievedRequest) returns (AddPostFundAchievedResponse) {}
+    rpc DeletePost(DeletePostRequest) returns (DeletePostResponse) {}
+}
+
+message CreatePostRequest {
+    string title = 1;
+    string body = 2;
+    string date_start = 3;
+    string date_end = 4;
+    float fund_target = 5;
+}
+
+message GetPostByIDRequest {
+    string post_id = 1;
+}
+
+message GetAllPostByInstitutionIDRequest {
+    string institution_id = 1;
+}
+
+message UpdatePostRequest {
+    string post_id = 1;
+    string title = 2;
+    string body = 3;
+    string date_start = 4;
+    string date_end = 5;
+    float fund_target = 6;
+}
+
+message AddPostFundAchievedRequest {
+    string post_id = 1;
+    float amount = 2;
+}
+
+message DeletePostRequest {
+    string post_id = 1;
+}
+
+message PostResponse {
+    string post_id = 1;
+    string title = 2;
+    string body = 3;
+    string date_start = 4;
+    string date_end = 5;
+    float fund_target = 6;
+    float func_achieved = 7;
+}
+
+message GetAllPostByInstitutionIDResponse {
+    repeated PostResponse posts = 1;
+}
+
+message AddPostFundAchievedResponse {
+    string post_id = 1;
+    float func_achieved = 2;
+}
+
+message DeletePostResponse {
+    string message = 1;
+}
