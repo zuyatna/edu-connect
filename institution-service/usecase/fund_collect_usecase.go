@@ -30,7 +30,7 @@ func (u *FundCollectUsecase) CreateFundCollect(ctx context.Context, fund_collect
 	if fund_collect.PostID.String() == "00000000-0000-0000-0000-000000000000" {
 		e = append(e, "Post ID is required")
 	}
-	if fund_collect.UserID.String() == "00000000-0000-0000-0000-000000000000" {
+	if fund_collect.UserID == "00000000-0000-0000-0000-000000000000" {
 		e = append(e, "User ID is required")
 	}
 	if fund_collect.UserName == "" {
