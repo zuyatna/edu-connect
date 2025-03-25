@@ -17,8 +17,10 @@ import (
 type IUserUseCase interface {
 	Register(user model.User) error
 	Login(email, password string) (string, error)
-	UpdateIsVerified(email string) error
 	ForgotPassword(email, newPassword string) error
+	UpdateIsVerified(email string) error
+	GetByEmail(email string) (*model.User, error)
+	UpdateBalance(email string, balance float64) error
 }
 
 type userUseCase struct {
@@ -47,11 +49,12 @@ func isValidEmail(email string) bool {
 	return matched
 }
 
-func GenerateJWTToken(email string) (string, error) {
+func GenerateJWTToken(name, email string) (string, error) {
 
 	JWTSecret := os.Getenv("JWT_SECRET")
 
 	claims := jwt.MapClaims{
+		"name":  name,
 		"email": email,
 		"exp":   time.Now().Add(time.Minute * 60).Unix(),
 	}
@@ -151,7 +154,7 @@ func (u *userUseCase) Login(email, password string) (string, error) {
 		return "nil", customErr.ErrInternalServer
 	}
 
-	token, err := GenerateJWTToken(user.Email)
+	token, err := GenerateJWTToken(user.Name, user.Email)
 	if err != nil {
 		logger.WithField("email", email).Error("Failed to generate JWT token")
 		return "", err
@@ -201,4 +204,66 @@ func (u *userUseCase) ForgotPassword(email, newPassword string) error {
 
 	logger.WithField("email", email).Info("User password updated successfully")
 	return nil
+}
+
+func (u *userUseCase) UpdateBalance(email string, balance float64) error {
+
+	if !isValidEmail(email) {
+		logger.WithField("email", email).Warn("Update balance failed: Invalid email format")
+		return customErr.ErrRegisterInvalidEmail
+	}
+
+	user, err := u.userRepo.GetByEmail(email)
+	if err != nil {
+		logger.WithField("email", email).Warn("Update balance failed: Email not found")
+		return customErr.ErrLoginEmailNotFound
+	}
+
+	err = u.userRepo.UpdateBalanceByEmail(user.Email, balance)
+	if err != nil {
+		logger.WithFields(logrus.Fields{
+			"email":   email,
+			"balance": balance,
+			"error":   err.Error(),
+		}).Error("Failed to update balance")
+		return customErr.ErrInternalServer
+	}
+
+	logger.WithFields(logrus.Fields{
+		"email":   email,
+		"balance": balance,
+	}).Info("User balance updated successfully")
+	return nil
+}
+
+func (u *userUseCase) GetByEmail(email string) (*model.User, error) {
+
+	if email == "" {
+		logger.Warn("Get user failed: Email is empty")
+		return nil, customErr.ErrRegisterEmailRequired
+	}
+
+	if !isValidEmail(email) {
+		logger.WithField("email", email).Warn("Get user failed: Invalid email format")
+		return nil, customErr.ErrRegisterInvalidEmail
+	}
+
+	user, err := u.userRepo.GetByEmail(email)
+	if err != nil {
+		if err == customErr.ErrLoginEmailNotFound {
+			logger.WithField("email", email).Warn("Get user failed: Email not found")
+			return nil, customErr.ErrLoginEmailNotFound
+		}
+
+		logger.WithFields(logrus.Fields{
+			"email": email,
+			"error": err.Error(),
+		}).Error("Get user failed: Internal server error")
+
+		return nil, customErr.ErrInternalServer
+	}
+
+	logger.WithField("email", email).Info("User retrieved successfully")
+	return user, nil
+
 }
