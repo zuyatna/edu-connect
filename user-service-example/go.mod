@@ -1,4 +1,4 @@
-module github.com/zuyatna/edu-connect/user-service
+module github.com/zuyatna/edu-connect/user-service-example
 
 go 1.24.0
 
