@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package user;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "proto/user";
+
+service UserService {
+    rpc GetUserByToken (google.protobuf.Empty) returns (GetUserByTokenResponse);
+    rpc UpdateUserBalance (UpdateUserBalanceRequest) returns (UpdateUserBalanceResponse);
+}
+
+message GetUserByTokenResponse {
+    int32 id = 1;
+    string name = 2;
+    string email = 3;
+    double balance = 4;
+}
+
+message UpdateUserBalanceRequest {
+    double balance = 1;
+}
+
+message UpdateUserBalanceResponse {
+    string message = 1;
+}
