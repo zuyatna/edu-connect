@@ -104,12 +104,14 @@ func (s *TransactionServer) CreateTransaction(ctx context.Context, req *pbTransa
 		return nil, err
 	}
 
+	transactionIDStr := transaction.TransactionID.Hex()
+	
 	invoiceReq := client.CreateInvoiceRequest{
-		ExternalID:         transaction.TransactionID.String(),
+		ExternalID:         transactionIDStr,
 		Amount:             transaction.Amount,
-		PayerEmail:         email, // userResp.Email
+		PayerEmail:         email,
 		Description:        fmt.Sprintf("Fund contribution for post %s", req.PostId),
-		CustomerName:       "anonymous", // userResp.Name
+		CustomerName:       "anonymous",
 		InvoiceDuration:    86400,       // 24 hours
 		SuccessRedirectURL: "https://edu-connect.example.com/payment/success",
 		FailureRedirectURL: "https://edu-connect.example.com/payment/failed",
