@@ -3,25 +3,27 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"transaction-service/database"
+	"transaction-service/handler"
+	"transaction-service/middlewares"
+	pbFuncCollect "transaction-service/pb/fund_collect"
+	"transaction-service/pb/transaction"
+	pbUser "transaction-service/pb/user"
+	"transaction-service/repository"
+	"transaction-service/routes"
+	"transaction-service/usecase"
+
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
 	"github.com/sirupsen/logrus"
-	"github.com/zuyatna/edu-connect/transaction-service/database"
-	"github.com/zuyatna/edu-connect/transaction-service/handler"
-	"github.com/zuyatna/edu-connect/transaction-service/middlewares"
-	pbFuncCollect "github.com/zuyatna/edu-connect/transaction-service/pb/fund_collect"
-	"github.com/zuyatna/edu-connect/transaction-service/pb/transaction"
-	pbUser "github.com/zuyatna/edu-connect/transaction-service/pb/user"
-	"github.com/zuyatna/edu-connect/transaction-service/repository"
-	"github.com/zuyatna/edu-connect/transaction-service/routes"
-	"github.com/zuyatna/edu-connect/transaction-service/usecase"
 	"go.mongodb.org/mongo-driver/mongo"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -142,9 +144,18 @@ func InitHTTPServer(
 	userConn *grpc.ClientConn,
 	fundCollectConn *grpc.ClientConn,
 ) {
-	conn, err := grpc.Dial(grpcEndpoint+":"+grpcPort,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
+	var opts []grpc.DialOption
+
+	if os.Getenv("ENV") == "production" {
+		tlsConfig := &tls.Config{
+			InsecureSkipVerify: true,
+		}
+		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)))
+	} else {
+		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	}
+
+	conn, err := grpc.NewClient(grpcEndpoint+":"+grpcPort, opts...)
 	if err != nil {
 		panic(err)
 	}
@@ -186,7 +197,7 @@ func InitGRPCServer(
 	userConn *grpc.ClientConn,
 	fundCollectConn *grpc.ClientConn,
 ) {
-	transactionListener, err := net.Listen("tcp", grpcEndpoint+":"+grpcPort)
+	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%s", grpcEndpoint, grpcPort))
 	if err != nil {
 		panic(err)
 	}
@@ -197,7 +208,7 @@ func InitGRPCServer(
 		opts = append(opts, grpc.Creds(creds))
 	}
 
-	opts = append(opts, grpc.UnaryInterceptor(middlewares.AuthGRPCInterceptor))
+	opts = append(opts, grpc.UnaryInterceptor(middlewares.AuthGRPCInterceptor2))
 
 	userClient := pbUser.NewUserServiceClient(userConn)
 	fundCollectClient := pbFuncCollect.NewFundCollectServiceClient(fundCollectConn)
@@ -209,7 +220,7 @@ func InitGRPCServer(
 	transaction.RegisterTransactionServiceServer(transactionServer, transactionHandler)
 
 	log.Info("Starting gRPC Server at", grpcEndpoint, ":", grpcPort)
-	if err := transactionServer.Serve(transactionListener); err != nil {
+	if err := transactionServer.Serve(listener); err != nil {
 		errChan <- err
 	}
 }

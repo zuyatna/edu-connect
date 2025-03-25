@@ -5,7 +5,8 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/zuyatna/edu-connect/transaction-service/model"
+	"transaction-service/model"
+
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 

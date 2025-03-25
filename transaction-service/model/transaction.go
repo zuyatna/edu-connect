@@ -10,6 +10,7 @@ type Transaction struct {
 	TransactionID primitive.ObjectID `json:"transaction_id" bson:"_id,omitempty"`
 	UserID        string             `json:"user_id" bson:"user_id"`
 	PostID        string             `json:"post_id" bson:"post_id"`
+	UserEmail     string             `json:"user_email" bson:"user_email"`
 	PaymentID     string             `json:"payment_id" gorm:"not null"`
 	PaymentURL    string             `json:"payment_url" gorm:""`
 	PaymentStatus string             `json:"payment_status" gorm:"default:'PENDING'"`
@@ -25,5 +26,4 @@ type TransactionRequest struct {
 	Amount        float64 `json:"amount"`
 	AccountNumber string  `json:"account_number"`
 	AccountName   string  `json:"account_name"`
-	HideName      bool    `json:"hide_name"`
 }

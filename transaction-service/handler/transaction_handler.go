@@ -4,13 +4,14 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/zuyatna/edu-connect/transaction-service/client"
-	"github.com/zuyatna/edu-connect/transaction-service/middlewares"
-	"github.com/zuyatna/edu-connect/transaction-service/model"
-	pbFuncCollect "github.com/zuyatna/edu-connect/transaction-service/pb/fund_collect"
-	pbTransaction "github.com/zuyatna/edu-connect/transaction-service/pb/transaction"
-	pbUser "github.com/zuyatna/edu-connect/transaction-service/pb/user"
-	"github.com/zuyatna/edu-connect/transaction-service/usecase"
+	"transaction-service/client"
+	"transaction-service/middlewares"
+	"transaction-service/model"
+	pbFuncCollect "transaction-service/pb/fund_collect"
+	pbTransaction "transaction-service/pb/transaction"
+	pbUser "transaction-service/pb/user"
+	"transaction-service/usecase"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -42,31 +43,56 @@ func NewTransactionHandler(
 }
 
 func (s *TransactionServer) CreateTransaction(ctx context.Context, req *pbTransaction.CreateTransactionRequest) (*pbTransaction.CreateTransactionResponse, error) {
-	authenticatedUserID, ok := ctx.Value(middlewares.UserIDKey).(string)
-	if !ok {
-		return nil, status.Errorf(codes.Internal, "failed to get authenticated user ID from context")
-	}
-
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		return nil, status.Errorf(codes.Internal, "failed to get metadata from context")
 	}
 
-	outCtx := ctx
-	if authHeaders, exists := md["authorization"]; exists && len(authHeaders) > 0 {
-		outCtx = metadata.AppendToOutgoingContext(ctx, "authorization", authHeaders[0])
+	fmt.Printf("Context keys: %v\n", ctx)
+	if md["authorization"] != nil {
+		fmt.Printf("Auth header present\n")
 	}
 
-	userResp, err := s.userClient.GetUserByID(outCtx, &pbUser.GetUserByIDRequest{
-		Id: authenticatedUserID,
-	})
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to get user: %v", err)
+	email, emailOk := ctx.Value(middlewares.EmailKey).(string)
+	if !emailOk || email == "" {
+		return nil, status.Errorf(codes.Internal, "failed to get authenticated user email from context")
 	}
+
+	var authenticatedUserID string
+
+	if userID, userIDOk := ctx.Value(middlewares.UserIDKey).(string); userIDOk && userID != "" {
+		authenticatedUserID = "00000000-0000-0000-0000-000000000000" // userID
+	} else {
+		// Look up user ID from user service using email
+		// userResp, err := s.userClient.GetUserByID(ctx, &pbUser.GetUserByIDRequest{
+		// 	Email: email,
+		// })
+		// if err != nil {
+		// 	return nil, status.Errorf(codes.Internal, "failed to get user ID: %v", err)
+		// }
+		// authenticatedUserID = userResp.Id
+
+		authenticatedUserID = "00000000-0000-0000-0000-000000000000"
+	}
+
+	// Get user details from user service
+	// This is commented out because the user service is not yet implemented
+	// outCtx := ctx
+	// if authHeaders, exists := md["authorization"]; exists && len(authHeaders) > 0 {
+	// 	outCtx = metadata.AppendToOutgoingContext(ctx, "authorization", authHeaders[0])
+	// }
+
+	// userResp, err := s.userClient.GetUserByID(outCtx, &pbUser.GetUserByIDRequest{
+	// 	Id: authenticatedUserID,
+	// })
+	// if err != nil {
+	// 	return nil, status.Errorf(codes.Internal, "failed to get user: %v", err)
+	// }
 
 	transaction_model := &model.Transaction{
 		UserID:        authenticatedUserID,
 		PostID:        req.PostId,
+		UserEmail:     email,
 		PaymentID:     "pending",
 		Amount:        float64(req.Amount),
 		AccountNumber: req.AccountNumber,
@@ -81,10 +107,10 @@ func (s *TransactionServer) CreateTransaction(ctx context.Context, req *pbTransa
 	invoiceReq := client.CreateInvoiceRequest{
 		ExternalID:         transaction.TransactionID.String(),
 		Amount:             transaction.Amount,
-		PayerEmail:         userResp.Email,
+		PayerEmail:         email, // userResp.Email
 		Description:        fmt.Sprintf("Fund contribution for post %s", req.PostId),
-		CustomerName:       userResp.Name,
-		InvoiceDuration:    86400, // 24 hours
+		CustomerName:       "anonymous", // userResp.Name
+		InvoiceDuration:    86400,       // 24 hours
 		SuccessRedirectURL: "https://edu-connect.example.com/payment/success",
 		FailureRedirectURL: "https://edu-connect.example.com/payment/failed",
 		CallbackURL:        "https://edu-connect.example.com/api/payment/callback",
