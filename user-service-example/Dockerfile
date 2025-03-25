@@ -6,11 +6,9 @@ COPY . .
 
 RUN go mod tidy
 
-RUN go build -o user-service-example
+RUN go build -o user-service
 
-EXPOSE 8080 50051
+EXPOSE 8080
+EXPOSE 50051
 
-ENV GRPC_ENDPOINT=0.0.0.0
-ENV GRPC_PORT=50051
-
-CMD ["./user-service-example"]
+CMD ["./user-service"]

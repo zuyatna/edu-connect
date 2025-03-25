@@ -1,6 +1,8 @@
 package model
 
 import (
+	"time"
+
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -8,11 +10,14 @@ type Transaction struct {
 	TransactionID primitive.ObjectID `json:"transaction_id" bson:"_id,omitempty"`
 	UserID        string             `json:"user_id" bson:"user_id"`
 	PostID        string             `json:"post_id" bson:"post_id"`
-	PaymentID     string             `json:"payment_id" bson:"payment_id"`
-	Amount        float64            `json:"amount" bson:"amount"`
-	AccountNumber string             `json:"account_number" bson:"account_number"`
-	AccountName   string             `json:"account_name" bson:"account_name"`
-	CreatedAt     string             `json:"created_at" bson:"created_at"`
+	PaymentID     string             `json:"payment_id" gorm:"not null"`
+	PaymentURL    string             `json:"payment_url" gorm:""`
+	PaymentStatus string             `json:"payment_status" gorm:"default:'PENDING'"`
+	Amount        float64            `json:"amount" gorm:"not null"`
+	AccountNumber string             `json:"account_number" gorm:"not null"`
+	AccountName   string             `json:"account_name" gorm:"not null"`
+	CreatedAt     time.Time          `json:"created_at" gorm:"default:current_timestamp"`
+	UpdatedAt     time.Time          `json:"updated_at" gorm:"default:current_timestamp"`
 }
 
 type TransactionRequest struct {

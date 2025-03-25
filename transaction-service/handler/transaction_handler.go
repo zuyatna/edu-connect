@@ -2,7 +2,9 @@ package handler
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/zuyatna/edu-connect/transaction-service/client"
 	"github.com/zuyatna/edu-connect/transaction-service/middlewares"
 	"github.com/zuyatna/edu-connect/transaction-service/model"
 	pbFuncCollect "github.com/zuyatna/edu-connect/transaction-service/pb/fund_collect"
@@ -23,6 +25,7 @@ type TransactionServer struct {
 	transactionUsecase usecase.ITransactionUsecase
 	userClient         pbUser.UserServiceClient
 	fundCollectClient  pbFuncCollect.FundCollectServiceClient
+	xenditClient       *client.XenditClient
 }
 
 func NewTransactionHandler(
@@ -34,6 +37,7 @@ func NewTransactionHandler(
 		transactionUsecase: transactionUsecase,
 		userClient:         userClient,
 		fundCollectClient:  fundCollectClient,
+		xenditClient:       client.NewXenditClient(),
 	}
 }
 
@@ -41,20 +45,6 @@ func (s *TransactionServer) CreateTransaction(ctx context.Context, req *pbTransa
 	authenticatedUserID, ok := ctx.Value(middlewares.UserIDKey).(string)
 	if !ok {
 		return nil, status.Errorf(codes.Internal, "failed to get authenticated user ID from context")
-	}
-
-	transaction_model := &model.Transaction{
-		UserID:        authenticatedUserID,
-		PostID:        req.PostId,
-		PaymentID:     "00000000-0000-0000-0000-000000000000",
-		Amount:        float64(req.Amount),
-		AccountNumber: req.AccountNumber,
-		AccountName:   req.AccountName,
-	}
-
-	transaction, err := s.transactionUsecase.CreateTransaction(ctx, transaction_model)
-	if err != nil {
-		return nil, err
 	}
 
 	md, ok := metadata.FromIncomingContext(ctx)
@@ -74,20 +64,44 @@ func (s *TransactionServer) CreateTransaction(ctx context.Context, req *pbTransa
 		return nil, status.Errorf(codes.Internal, "failed to get user: %v", err)
 	}
 
-	userName := userResp.Name
-	if req.HideName {
-		userName = "Anonymous"
+	transaction_model := &model.Transaction{
+		UserID:        authenticatedUserID,
+		PostID:        req.PostId,
+		PaymentID:     "pending",
+		Amount:        float64(req.Amount),
+		AccountNumber: req.AccountNumber,
+		AccountName:   req.AccountName,
 	}
 
-	_, err = s.fundCollectClient.CreateFundCollect(outCtx, &pbFuncCollect.CreateFundCollectRequest{
-		PostId:        req.PostId,
-		UserId:        authenticatedUserID,
-		UserName:      userName,
-		Amount:        req.Amount,
-		TransactionId: transaction.TransactionID.String(),
-	})
+	transaction, err := s.transactionUsecase.CreateTransaction(ctx, transaction_model)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to create fund collect: %v", err)
+		return nil, err
+	}
+
+	invoiceReq := client.CreateInvoiceRequest{
+		ExternalID:         transaction.TransactionID.String(),
+		Amount:             transaction.Amount,
+		PayerEmail:         userResp.Email,
+		Description:        fmt.Sprintf("Fund contribution for post %s", req.PostId),
+		CustomerName:       userResp.Name,
+		InvoiceDuration:    86400, // 24 hours
+		SuccessRedirectURL: "https://edu-connect.example.com/payment/success",
+		FailureRedirectURL: "https://edu-connect.example.com/payment/failed",
+		CallbackURL:        "https://edu-connect.example.com/api/payment/callback",
+	}
+
+	invoice, err := s.xenditClient.CreateInvoice(invoiceReq)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to create payment invoice: %v", err)
+	}
+
+	transaction.PaymentID = invoice.ID
+	transaction.PaymentURL = invoice.InvoiceURL
+	transaction.PaymentStatus = "PENDING"
+
+	_, err = s.transactionUsecase.UpdateTransaction(ctx, transaction)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to update transaction with payment details: %v", err)
 	}
 
 	return &pbTransaction.CreateTransactionResponse{
@@ -96,5 +110,7 @@ func (s *TransactionServer) CreateTransaction(ctx context.Context, req *pbTransa
 		Amount:        float32(transaction.Amount),
 		AccountNumber: transaction.AccountNumber,
 		AccountName:   transaction.AccountName,
+		PaymentUrl:    invoice.InvoiceURL,
+		Status:        "PENDING",
 	}, nil
 }

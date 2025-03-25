@@ -77,15 +77,72 @@ func main() {
 		grpcPort = "50053"
 	}
 
-	go InitHTTPServer(errChan, port, grpcEndpoint, grpcPort)
-	go InitGRPCServer(db, errChan, grpcEndpoint, grpcPort)
+	transactionRepo := repository.NewTransactionRepository(db)
+	transactionUsecase := usecase.NewTransactionUsecase(transactionRepo)
+
+	userConn, fundCollectConn := getServiceConnections()
+
+	go InitHTTPServer(errChan, port, grpcEndpoint, grpcPort, transactionUsecase, userConn, fundCollectConn)
+	go InitGRPCServer(db, errChan, grpcEndpoint, grpcPort, transactionUsecase, userConn, fundCollectConn)
 
 	<-quitChan
 	logger.Info("Shutting down...")
+
+	userConn.Close()
+	fundCollectConn.Close()
 }
 
-func InitHTTPServer(errChan chan error, port, grpcEndpoint, grpcPort string) {
-	conn, err := grpc.NewClient(grpcEndpoint+":"+grpcPort,
+func getServiceConnections() (*grpc.ClientConn, *grpc.ClientConn) {
+	grpcUserEndpoint := os.Getenv("GRPC_USER_ENDPOINT")
+	if grpcUserEndpoint == "" {
+		grpcUserEndpoint = "localhost"
+	}
+	grpcUserPort := os.Getenv("GRPC_USER_PORT")
+	if grpcUserPort == "" {
+		grpcUserPort = "50051"
+	}
+
+	// For Cloud Run, use TLS credentials
+	var creds credentials.TransportCredentials
+	if os.Getenv("ENV") == "production" {
+		creds = credentials.NewClientTLSFromCert(nil, "")
+	} else {
+		creds = insecure.NewCredentials()
+	}
+
+	userConn, err := grpc.Dial(grpcUserEndpoint+":"+grpcUserPort,
+		grpc.WithTransportCredentials(creds),
+	)
+
+	grpcInstitutionEndpoint := os.Getenv("GRPC_INSTITUTION_ENDPOINT")
+	if grpcInstitutionEndpoint == "" {
+		grpcInstitutionEndpoint = "localhost"
+	}
+	grpcInstitutionPort := os.Getenv("GRPC_INSTITUTION_PORT")
+	if grpcInstitutionPort == "" {
+		grpcInstitutionPort = "50052"
+	}
+
+	fundCollectConn, err := grpc.Dial(grpcInstitutionEndpoint+":"+grpcInstitutionPort,
+		grpc.WithTransportCredentials(creds),
+	)
+	if err != nil {
+		log.Fatalf("Failed to connect to fund collect service: %v", err)
+	}
+
+	return userConn, fundCollectConn
+}
+
+func InitHTTPServer(
+	errChan chan error,
+	port,
+	grpcEndpoint,
+	grpcPort string,
+	transactionUsecase usecase.ITransactionUsecase,
+	userConn *grpc.ClientConn,
+	fundCollectConn *grpc.ClientConn,
+) {
+	conn, err := grpc.Dial(grpcEndpoint+":"+grpcPort,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
@@ -94,6 +151,7 @@ func InitHTTPServer(errChan chan error, port, grpcEndpoint, grpcPort string) {
 	defer conn.Close()
 
 	transactionClient := transaction.NewTransactionServiceClient(conn)
+	fundCollectClient := pbFuncCollect.NewFundCollectServiceClient(fundCollectConn)
 
 	e := echo.New()
 
@@ -105,6 +163,13 @@ func InitHTTPServer(errChan chan error, port, grpcEndpoint, grpcPort string) {
 		return c.String(http.StatusOK, "OK")
 	})
 
+	userClient := pbUser.NewUserServiceClient(userConn)
+	paymentCallbackHandler := handler.NewPaymentCallbackHandler(transactionUsecase, userClient, fundCollectClient)
+	e.POST("/api/payment/callback", func(c echo.Context) error {
+		paymentCallbackHandler.HandleCallback(c.Response().Writer, c.Request())
+		return nil
+	})
+
 	transactionRoutes := routes.NewTransactionHTTPHandler(transactionClient)
 	transactionRoutes.Routes(e)
 
@@ -112,7 +177,15 @@ func InitHTTPServer(errChan chan error, port, grpcEndpoint, grpcPort string) {
 	errChan <- e.Start(":" + port)
 }
 
-func InitGRPCServer(db *mongo.Database, errChan chan error, grpcEndpoint, grpcPort string) {
+func InitGRPCServer(
+	db *mongo.Database,
+	errChan chan error,
+	grpcEndpoint,
+	grpcPort string,
+	transactionUsecase usecase.ITransactionUsecase,
+	userConn *grpc.ClientConn,
+	fundCollectConn *grpc.ClientConn,
+) {
 	transactionListener, err := net.Listen("tcp", grpcEndpoint+":"+grpcPort)
 	if err != nil {
 		panic(err)
@@ -126,46 +199,9 @@ func InitGRPCServer(db *mongo.Database, errChan chan error, grpcEndpoint, grpcPo
 
 	opts = append(opts, grpc.UnaryInterceptor(middlewares.AuthGRPCInterceptor))
 
-	grpcUserEndpoint := os.Getenv("GRPC_USER_ENDPOINT")
-	if grpcUserEndpoint == "" {
-		grpcUserEndpoint = "localhost"
-	}
-	grpcUserPort := os.Getenv("GRPC_USER_PORT")
-	if grpcUserPort == "" {
-		grpcUserPort = "50051"
-	}
-
-	userConn, err := grpc.NewClient(grpcUserEndpoint+":"+grpcUserPort,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
-	if err != nil {
-		log.Fatalf("Failed to connect to user service: %v", err)
-	}
-	defer userConn.Close()
-
 	userClient := pbUser.NewUserServiceClient(userConn)
-
-	grpcInstitutionEndpoint := os.Getenv("GRPC_INSTITUTION_ENDPOINT")
-	if grpcInstitutionEndpoint == "" {
-		grpcInstitutionEndpoint = "localhost"
-	}
-	grpcInstitutionPort := os.Getenv("GRPC_INSTITUTION_PORT")
-	if grpcInstitutionPort == "" {
-		grpcInstitutionPort = "50052"
-	}
-
-	fundCollectConn, err := grpc.NewClient(grpcInstitutionEndpoint+":"+grpcInstitutionPort,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
-	if err != nil {
-		log.Fatalf("Failed to connect to fund collect service: %v", err)
-	}
-	defer fundCollectConn.Close()
-
 	fundCollectClient := pbFuncCollect.NewFundCollectServiceClient(fundCollectConn)
 
-	transactionRepo := repository.NewTransactionRepository(db)
-	transactionUsecase := usecase.NewTransactionUsecase(transactionRepo)
 	transactionHandler := handler.NewTransactionHandler(transactionUsecase, userClient, fundCollectClient)
 
 	transactionServer := grpc.NewServer(opts...)

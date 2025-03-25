@@ -9,18 +9,18 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/zuyatna/edu-connect/user-service-example/database"
+	"github.com/zuyatna/edu-connect/user-service-example/handler"
+	"github.com/zuyatna/edu-connect/user-service-example/middlewares"
+	"github.com/zuyatna/edu-connect/user-service-example/model"
+	pb "github.com/zuyatna/edu-connect/user-service-example/pb/user"
+	"github.com/zuyatna/edu-connect/user-service-example/repository"
+	"github.com/zuyatna/edu-connect/user-service-example/routes"
+	"github.com/zuyatna/edu-connect/user-service-example/usecase"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
 	"github.com/sirupsen/logrus"
-	"github.com/zuyatna/edu-connect/user-service/database"
-	"github.com/zuyatna/edu-connect/user-service/handler"
-	"github.com/zuyatna/edu-connect/user-service/middlewares"
-	"github.com/zuyatna/edu-connect/user-service/model"
-	pb "github.com/zuyatna/edu-connect/user-service/pb/user"
-	"github.com/zuyatna/edu-connect/user-service/repository"
-	"github.com/zuyatna/edu-connect/user-service/routes"
-	"github.com/zuyatna/edu-connect/user-service/usecase"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"gorm.io/driver/postgres"
@@ -82,9 +82,18 @@ func main() {
 }
 
 func InitHTTPServer(errChan chan error, port, grpcEndpoint, grpcPort string) {
-	conn, err := grpc.NewClient(grpcEndpoint+":"+grpcPort,
-		grpc.WithInsecure(),
-	)
+	var opts []grpc.DialOption
+
+	if os.Getenv("ENV") == "production" {
+		tlsConfig := &tls.Config{
+			InsecureSkipVerify: true,
+		}
+		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)))
+	} else {
+		opts = append(opts, grpc.WithInsecure())
+	}
+
+	conn, err := grpc.Dial(grpcEndpoint+":"+grpcPort, opts...)
 	if err != nil {
 		panic(err)
 	}
