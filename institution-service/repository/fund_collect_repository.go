@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	"github.com/zuyatna/edu-connect/institution-service/model"
+	"institution-service/model"
 	"gorm.io/gorm"
 )
 

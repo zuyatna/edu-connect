@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/zuyatna/edu-connect/institution-service/httputil"
-	pb "github.com/zuyatna/edu-connect/institution-service/pb/institution"
+	"institution-service/httputil"
+	pb "institution-service/pb/institution"
 	"google.golang.org/grpc/metadata"
 )
 

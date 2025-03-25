@@ -4,7 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/zuyatna/edu-connect/transaction-service/model"
+	"transaction-service/model"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -30,6 +31,7 @@ func (r *TransactionRepository) CreateTransaction(ctx context.Context, transacti
 	doc := bson.D{
 		{Key: "user_id", Value: transaction.UserID},
 		{Key: "post_id", Value: transaction.PostID},
+		{Key: "user_email", Value: transaction.UserEmail},
 		{Key: "payment_id", Value: transaction.PaymentID},
 		{Key: "amount", Value: transaction.Amount},
 		{Key: "account_number", Value: transaction.AccountNumber},

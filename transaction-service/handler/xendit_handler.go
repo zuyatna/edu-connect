@@ -7,9 +7,11 @@ import (
 	"log"
 	"net/http"
 
-	pbFuncCollect "github.com/zuyatna/edu-connect/transaction-service/pb/fund_collect"
-	pbUser "github.com/zuyatna/edu-connect/transaction-service/pb/user"
-	"github.com/zuyatna/edu-connect/transaction-service/usecase"
+	"transaction-service/middlewares"
+	pbFuncCollect "transaction-service/pb/fund_collect"
+	pbUser "transaction-service/pb/user"
+	"transaction-service/usecase"
+
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"google.golang.org/grpc/metadata"
 )
@@ -21,10 +23,10 @@ type PaymentCallbackHandler struct {
 }
 
 type XenditCallbackPayload struct {
-	ID         string  `json:"id"`
-	ExternalID string  `json:"external_id"`
-	Status     string  `json:"status"`
-	Amount     float64 `json:"amount"`
+	PaymentID     string  `json:"payment_id"`
+	TransactionID string  `json:"transaction_id"`
+	Status        string  `json:"status"`
+	Amount        float64 `json:"amount"`
 }
 
 func NewPaymentCallbackHandler(
@@ -52,7 +54,7 @@ func (h *PaymentCallbackHandler) HandleCallback(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	objectID, err := primitive.ObjectIDFromHex(payload.ExternalID)
+	objectID, err := primitive.ObjectIDFromHex(payload.TransactionID)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Invalid transaction ID format: %v", err), http.StatusBadRequest)
 		return
@@ -65,6 +67,7 @@ func (h *PaymentCallbackHandler) HandleCallback(w http.ResponseWriter, r *http.R
 	}
 
 	transaction.PaymentStatus = payload.Status
+	transaction.PaymentID = payload.PaymentID
 
 	if payload.Status == "PAID" {
 		log.Printf("Updating fund collection for transaction %s", transaction.TransactionID)
@@ -79,18 +82,26 @@ func (h *PaymentCallbackHandler) HandleCallback(w http.ResponseWriter, r *http.R
 		md := metadata.Pairs("authorization", token)
 		authCtx := metadata.NewOutgoingContext(outCtx, md)
 
-		userResp, err := h.userClient.GetUserByID(authCtx, &pbUser.GetUserByIDRequest{
-			Id: transaction.UserID,
-		})
-		if err != nil {
-			log.Printf("Failed to get user: %v", err)
+		// This is commented out because the user service is not yet implemented
+		// userResp, err := h.userClient.GetUserByID(authCtx, &pbUser.GetUserByIDRequest{
+		// 	Id: transaction.UserID,
+		// })
+		// if err != nil {
+		// 	log.Printf("Failed to get user: %v", err)
+		// }
+		// userName := userResp.Name
+
+		var userName string
+		if email := authCtx.Value(middlewares.EmailKey); email != nil {
+			userName = email.(string)
+		} else {
+			userName = "Anonymous User"
+			log.Printf("Warning: User email not found in context for transaction %s", transaction.TransactionID)
 		}
 
-		userName := userResp.Name
-
-		_, err = h.fundCollectClient.CreateFundCollect(outCtx, &pbFuncCollect.CreateFundCollectRequest{
+		_, err = h.fundCollectClient.CreateFundCollect(authCtx, &pbFuncCollect.CreateFundCollectRequest{
 			PostId:        transaction.PostID,
-			UserId:        transaction.UserID,
+			UserId:        "00000000-0000-0000-0000-000000000000",
 			UserName:      userName,
 			Amount:        float32(transaction.Amount),
 			TransactionId: transaction.TransactionID.Hex(),

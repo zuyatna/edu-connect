@@ -9,20 +9,21 @@ import (
 	"os/signal"
 	"syscall"
 
+	"institution-service/database"
+	"institution-service/handler"
+	"institution-service/middlewares"
+	"institution-service/model"
+	"institution-service/pb/fund_collect"
+	"institution-service/pb/institution"
+	"institution-service/pb/post"
+	"institution-service/repository"
+	"institution-service/routes"
+	"institution-service/usecase"
+
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
 	"github.com/sirupsen/logrus"
-	"github.com/zuyatna/edu-connect/institution-service/database"
-	"github.com/zuyatna/edu-connect/institution-service/handler"
-	"github.com/zuyatna/edu-connect/institution-service/middlewares"
-	"github.com/zuyatna/edu-connect/institution-service/model"
-	"github.com/zuyatna/edu-connect/institution-service/pb/fund_collect"
-	"github.com/zuyatna/edu-connect/institution-service/pb/institution"
-	"github.com/zuyatna/edu-connect/institution-service/pb/post"
-	"github.com/zuyatna/edu-connect/institution-service/repository"
-	"github.com/zuyatna/edu-connect/institution-service/routes"
-	"github.com/zuyatna/edu-connect/institution-service/usecase"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
@@ -103,9 +104,18 @@ func main() {
 }
 
 func InitHTTPServer(errChan chan error, port, grpcEndpoint, grpcPort string) {
-	conn, err := grpc.NewClient(grpcEndpoint+":"+grpcPort,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
+	var opts []grpc.DialOption
+
+	if os.Getenv("ENV") == "production" {
+		tlsConfig := &tls.Config{
+			InsecureSkipVerify: true,
+		}
+		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)))
+	} else {
+		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	}
+
+	conn, err := grpc.NewClient(grpcEndpoint+":"+grpcPort, opts...)
 	if err != nil {
 		panic(err)
 	}
@@ -139,7 +149,7 @@ func InitHTTPServer(errChan chan error, port, grpcEndpoint, grpcPort string) {
 }
 
 func InitGRPCServer(db *gorm.DB, errChan chan error, grpcEndpoint, grpcPort string) {
-	lis, err := net.Listen("tcp", grpcEndpoint+":"+grpcPort)
+	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%s", grpcEndpoint, grpcPort))
 	if err != nil {
 		panic(err)
 	}
@@ -171,7 +181,7 @@ func InitGRPCServer(db *gorm.DB, errChan chan error, grpcEndpoint, grpcPort stri
 	fund_collect.RegisterFundCollectServiceServer(grpcServer, fundCollectHandler)
 
 	log.Info("Starting gRPC Server at", grpcEndpoint, ":", grpcPort)
-	if err := grpcServer.Serve(lis); err != nil {
+	if err := grpcServer.Serve(listener); err != nil {
 		errChan <- err
 	}
 }

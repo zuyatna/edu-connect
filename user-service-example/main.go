@@ -118,8 +118,8 @@ func InitHTTPServer(errChan chan error, port, grpcEndpoint, grpcPort string) {
 	errChan <- e.Start(":" + port)
 }
 
-func InitGRPCServer(db *gorm.DB, errChan chan error, grcpEndpoint, grpcPort string) {
-	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%s", grcpEndpoint, grpcPort))
+func InitGRPCServer(db *gorm.DB, errChan chan error, grpcEndpoint, grpcPort string) {
+	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%s", grpcEndpoint, grpcPort))
 	if err != nil {
 		panic(err)
 	}
@@ -140,7 +140,7 @@ func InitGRPCServer(db *gorm.DB, errChan chan error, grcpEndpoint, grpcPort stri
 
 	pb.RegisterUserServiceServer(grpcServer, userHandler)
 
-	log.Info("Starting gRPC Server at", grcpEndpoint, ":", grpcPort)
+	log.Info("Starting gRPC Server at", grpcEndpoint, ":", grpcPort)
 	if err := grpcServer.Serve(listener); err != nil {
 		errChan <- err
 	}

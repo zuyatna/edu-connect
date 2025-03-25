@@ -5,10 +5,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/zuyatna/edu-connect/institution-service/middlewares"
-	"github.com/zuyatna/edu-connect/institution-service/model"
-	pb "github.com/zuyatna/edu-connect/institution-service/pb/post"
-	"github.com/zuyatna/edu-connect/institution-service/usecase"
+	"institution-service/middlewares"
+	"institution-service/model"
+	pb "institution-service/pb/post"
+	"institution-service/usecase"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

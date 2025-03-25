@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	pb "github.com/zuyatna/edu-connect/institution-service/pb/fund_collect"
+	pb "institution-service/pb/fund_collect"
 )
 
 type FundCollectHTTPHandler struct {
