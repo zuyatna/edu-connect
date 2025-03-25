@@ -5,8 +5,8 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/zuyatna/edu-connect/institution-service/model"
-	"github.com/zuyatna/edu-connect/institution-service/repository"
+	"institution-service/model"
+	"institution-service/repository"
 )
 
 type IFundCollectUsecase interface {

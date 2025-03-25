@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/zuyatna/edu-connect/institution-service/utils"
+	"institution-service/utils"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"

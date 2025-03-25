@@ -4,10 +4,10 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/zuyatna/edu-connect/institution-service/model"
-	pbFundCollect "github.com/zuyatna/edu-connect/institution-service/pb/fund_collect"
-	pbPost "github.com/zuyatna/edu-connect/institution-service/pb/post"
-	"github.com/zuyatna/edu-connect/institution-service/usecase"
+	"institution-service/model"
+	pbFundCollect "institution-service/pb/fund_collect"
+	pbPost "institution-service/pb/post"
+	"institution-service/usecase"
 )
 
 type IFundCollectHandler interface {
