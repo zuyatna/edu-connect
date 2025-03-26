@@ -21,6 +21,8 @@ type IUserUseCase interface {
 	UpdateIsVerified(email string) error
 	GetByEmail(email string) (*model.User, error)
 	UpdateBalance(email string, balance float64) error
+	GetByID(id uint) (*model.User, error)
+	GetAllPaginated(page int, limit int) ([]model.User, int64, error)
 }
 
 type userUseCase struct {
@@ -47,6 +49,32 @@ func isValidEmail(email string) bool {
 	regex := `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`
 	matched, _ := regexp.MatchString(regex, email)
 	return matched
+}
+
+func (u *userUseCase) GetAllPaginated(page int, limit int) ([]model.User, int64, error) {
+	users, total, err := u.userRepo.GetAllPaginated(page, limit)
+	if err != nil {
+		logger.Error("GetAllPaginated failed")
+		return nil, 0, customErr.ErrInternalServer
+	}
+
+	return users, total, nil
+}
+
+func (u *userUseCase) GetByID(id uint) (*model.User, error) {
+	user, err := u.userRepo.GetByID(id)
+	if err != nil {
+		if err.Error() == "user not found" {
+			logger.WithField("id", id).Warn("Get user by ID failed: not found")
+			return nil, customErr.ErrLoginEmailNotFound
+		}
+
+		logger.WithField("id", id).Error("Get user by ID failed: internal error")
+		return nil, customErr.ErrInternalServer
+	}
+
+	logger.WithField("id", id).Info("User fetched successfully by ID")
+	return user, nil
 }
 
 func GenerateJWTToken(name, email string) (string, error) {

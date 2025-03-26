@@ -48,6 +48,12 @@ func (u *passwordResetUseCase) RequestReset(email string) error {
 		return customErr.ErrLoginEmailNotFound
 	}
 
+	activeReset, err := u.resetRepo.GetActivePasswordResetByEmail(email)
+	if err == nil && activeReset != nil {
+		logger.Warn("Forgot password request denied: Active reset token exists")
+		return customErr.ErrResetTokenStillValid
+	}
+
 	token := uuid.NewString()
 	expiresAt := time.Now().Add(15 * time.Minute)
 
@@ -60,7 +66,6 @@ func (u *passwordResetUseCase) RequestReset(email string) error {
 	err = u.emailPublisher.PublishResetPasswordToken(user.Email, token)
 	if err != nil {
 		logger.WithError(err).Error("Failed to publish reset email")
-		// Bisa lanjut walau gagal publish
 	}
 
 	logger.Info("Reset password token generated and published")
@@ -93,7 +98,6 @@ func (u *passwordResetUseCase) ResetPassword(token, newPassword string) error {
 	err = u.resetRepo.MarkResetTokenUsed(token)
 	if err != nil {
 		logger.WithError(err).Warn("Failed to mark reset token as used")
-		// Optional: hanya log
 	}
 
 	logger.WithField("email", data.Email).Info("Password reset successfully")

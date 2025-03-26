@@ -22,5 +22,7 @@ var (
 )
 
 var (
-	ErrVerificationTokenInvalid = errors.New("token invalid")
+	ErrVerificationTokenInvalid    = errors.New("token invalid")
+	ErrResetTokenStillValid        = errors.New("link reset password still active")
+	ErrVerificationTokenStillValid = errors.New("link verification still active")
 )

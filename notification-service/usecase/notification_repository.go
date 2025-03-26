@@ -47,17 +47,17 @@ func (u *notificationUsecase) SendNotification(notification model.Notification) 
 		return err
 	}
 
-	err = u.repo.MarkAsSent(notification.ID)
+	err = u.repo.MarkAsSent(notification.NotificationID)
 	if err != nil {
 		u.logger.WithFields(logrus.Fields{
-			"id":    notification.ID,
+			"id":    notification.NotificationID,
 			"error": err.Error(),
 		}).Error("Failed to update notification status")
 		return err
 	}
 
 	u.logger.WithFields(logrus.Fields{
-		"id":    notification.ID,
+		"id":    notification.NotificationID,
 		"email": notification.Email,
 	}).Info("Notification processed successfully")
 
