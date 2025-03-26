@@ -28,6 +28,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 func main() {
@@ -38,13 +40,25 @@ func main() {
 	})
 
 	ctx := context.Background()
-	db := database.GetMongoDatabase()
-
+	dbMongo := database.GetMongoDatabase()
 	defer func() {
 		if err := database.CloseMongoConnection(ctx); err != nil {
 			logger.Fatalf("Failed to close MongoDB connection: %v", err)
 		}
 	}()
+
+	initDB := database.GetDB()
+	if initDB == nil {
+		fmt.Println("Failed to initialize database")
+		return
+	}
+	fmt.Println("Application started successfully")
+	defer database.CloseDB()
+
+	dbPostgre, err := gorm.Open(postgres.New(postgres.Config{Conn: initDB}), &gorm.Config{})
+	if err != nil {
+		panic("failed to connect to database!")
+	}
 
 	sigChan := make(chan os.Signal, 1)
 	errChan := make(chan error, 1)
@@ -79,13 +93,13 @@ func main() {
 		grpcPort = "50053"
 	}
 
-	transactionRepo := repository.NewTransactionRepository(db)
+	transactionRepo := repository.NewTransactionRepository(dbMongo, dbPostgre)
 	transactionUsecase := usecase.NewTransactionUsecase(transactionRepo)
 
 	userConn, fundCollectConn := getServiceConnections()
 
 	go InitHTTPServer(errChan, port, grpcEndpoint, grpcPort, transactionUsecase, userConn, fundCollectConn)
-	go InitGRPCServer(db, errChan, grpcEndpoint, grpcPort, transactionUsecase, userConn, fundCollectConn)
+	go InitGRPCServer(dbMongo, errChan, grpcEndpoint, grpcPort, transactionUsecase, userConn, fundCollectConn)
 
 	<-quitChan
 	logger.Info("Shutting down...")

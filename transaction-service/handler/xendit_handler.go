@@ -8,10 +8,12 @@ import (
 	"net/http"
 
 	"transaction-service/middlewares"
+	"transaction-service/model"
 	pbFuncCollect "transaction-service/pb/fund_collect"
 	pbUser "transaction-service/pb/user"
 	"transaction-service/usecase"
 
+	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"google.golang.org/grpc/metadata"
 )
@@ -99,16 +101,38 @@ func (h *PaymentCallbackHandler) HandleCallback(w http.ResponseWriter, r *http.R
 			log.Printf("Warning: User email not found in context for transaction %s", transaction.TransactionID)
 		}
 
-		_, err = h.fundCollectClient.CreateFundCollect(authCtx, &pbFuncCollect.CreateFundCollectRequest{
-			PostId:        transaction.PostID,
-			UserId:        "00000000-0000-0000-0000-000000000000",
+		postUUID, err := uuid.Parse(transaction.PostID)
+		if err != nil {
+			log.Printf("Failed to parse PostID as UUID: %v", err)
+			http.Error(w, fmt.Sprintf("Invalid PostID format: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		_, err = h.transactionUsecase.CreateFundCollect(authCtx, &model.FundCollect{
+			PostID:        postUUID,
+			UserID:        transaction.UserID,
 			UserName:      userName,
-			Amount:        float32(transaction.Amount),
-			TransactionId: transaction.TransactionID.Hex(),
+			Amount:        float64(transaction.Amount),
+			TransactionID: transaction.TransactionID.Hex(),
 		})
 		if err != nil {
 			log.Printf("Failed to create fund collect: %v", err)
 		}
+
+		_, err = h.transactionUsecase.AddPostFundAchieved(r.Context(), postUUID, transaction.Amount)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Failed to update post fund achieved: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		// This is commented out because the fund collect service is not yet implemented
+		// _, err = h.fundCollectClient.CreateFundCollect(authCtx, &pbFuncCollect.CreateFundCollectRequest{
+		// 	PostId:        transaction.PostID,
+		// 	UserId:        "00000000-0000-0000-0000-000000000000",
+		// 	UserName:      userName,
+		// 	Amount:        float32(transaction.Amount),
+		// 	TransactionId: transaction.TransactionID.Hex(),
+		// })
 	} else if payload.Status == "EXPIRED" {
 		log.Printf("Payment for transaction %s has expired", transaction.TransactionID)
 	} else if payload.Status == "FAILED" {
