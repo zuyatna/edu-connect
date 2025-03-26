@@ -20,7 +20,7 @@ func NewPostHTTPHandler(postClient pb.PostServiceClient) *PostHTTPHandler {
 }
 
 func (h *PostHTTPHandler) Routes(e *echo.Echo) {
-	e.GET("/v1/post", h.GetAllPost)
+	e.GET("/v1/posts", h.GetAllPost)
 
 	groupPost := e.Group("/v1/post")
 	groupPost.Use(AuthMiddleware)
@@ -40,7 +40,7 @@ func (h *PostHTTPHandler) Routes(e *echo.Echo) {
 // @Success      200  {object}  model.PostResponse "Success get post data"
 // @Failure      401  {object}  httputil.HTTPError "Unauthorized"
 // @Failure      404  {object}  httputil.HTTPError "Post not found"
-// @Router       /v1/post [get]
+// @Router       /v1/posts [get]
 func (h *PostHTTPHandler) GetAllPost(c echo.Context) error {
 	res, err := h.postClient.GetAllPost(c.Request().Context(), &pb.GetAllPostRequest{})
 	if err != nil {
