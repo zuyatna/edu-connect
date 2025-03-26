@@ -204,7 +204,9 @@ func (h *InstitutionHTTPHandler) DeleteInstitution(c echo.Context) error {
 func AuthMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		path := c.Request().URL.Path
-		if path == "/v1/institution/register" || path == "/v1/institution/login" || path == "/v1/posts" {
+		if path == "/v1/institution/register" ||
+			path == "/v1/institution/login" ||
+			path == "/v1/posts" {
 			return next(c)
 		}
 
