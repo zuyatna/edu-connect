@@ -17,6 +17,9 @@ type IUserRepository interface {
 	GetByEmail(email string) (*model.User, error)
 	UpdatePasswordByEmail(email, newPassword string) error
 	UpdateBalanceByEmail(email string, balance float64) error
+	GetByID(id uint) (*model.User, error)
+	GetAll() ([]model.User, error)
+	GetAllPaginated(page int, limit int) ([]model.User, int64, error)
 }
 
 type userRepository struct {
@@ -38,6 +41,53 @@ func hashPassword(password string) (string, error) {
 	}
 
 	return string(hash), nil
+}
+
+func (r *userRepository) GetAllPaginated(page int, limit int) ([]model.User, int64, error) {
+	var users []model.User
+	var total int64
+
+	offset := (page - 1) * limit
+
+	if err := r.db.Model(&model.User{}).Count(&total).Error; err != nil {
+		logger.WithError(err).Error("Failed to count users")
+		return nil, 0, err
+	}
+
+	if err := r.db.Limit(limit).Offset(offset).Find(&users).Error; err != nil {
+		logger.WithError(err).Error("Failed to fetch users with pagination")
+		return nil, 0, err
+	}
+
+	return users, total, nil
+}
+
+func (r *userRepository) GetAll() ([]model.User, error) {
+	var users []model.User
+	err := r.db.Find(&users).Error
+	if err != nil {
+		logger.WithError(err).Error("Failed to fetch all users")
+		return nil, err
+	}
+
+	logger.Info("Fetched all users successfully")
+	return users, nil
+}
+
+func (r *userRepository) GetByID(id uint) (*model.User, error) {
+	var user model.User
+	err := r.db.First(&user, id).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			logger.WithField("id", id).Warn("Get user failed: ID not found")
+			return nil, errors.New("user not found")
+		}
+		logger.WithField("id", id).Error("Failed to get user by ID")
+		return nil, err
+	}
+
+	logger.WithField("id", id).Info("User retrieved successfully by ID")
+	return &user, nil
 }
 
 func (r *userRepository) Register(user *model.User) error {

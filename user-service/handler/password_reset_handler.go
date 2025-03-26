@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"userService/usecase"
+	"userService/utils"
 
 	customErr "userService/error"
 
@@ -34,7 +35,7 @@ func (h *PasswordResetHandler) RequestResetPassword(c echo.Context) error {
 
 	if err := c.Bind(&req); err != nil {
 		logrus.Warn("Invalid request body for RequestResetPassword")
-		return c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid request body"})
+		return utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request body")
 	}
 
 	logrus.WithField("email", req.Email).Info("Password reset request received")
@@ -46,11 +47,12 @@ func (h *PasswordResetHandler) RequestResetPassword(c echo.Context) error {
 			statusCode = http.StatusBadRequest
 		}
 		logrus.WithError(err).WithField("email", req.Email).Error("Password reset request failed")
-		return c.JSON(statusCode, ErrorResponse{Error: err.Error()})
+		return utils.ErrorResponse(c, statusCode, err.Error())
 	}
 
 	logrus.WithField("email", req.Email).Info("Password reset token sent successfully")
-	return c.JSON(http.StatusOK, map[string]string{"message": "Password reset link sent to email"})
+
+	return utils.SuccessResponse(c, http.StatusOK, nil, "Password reset link sent to email")
 }
 
 func (h *PasswordResetHandler) ResetPassword(c echo.Context) error {
@@ -61,7 +63,7 @@ func (h *PasswordResetHandler) ResetPassword(c echo.Context) error {
 
 	if err := c.Bind(&req); err != nil {
 		logrus.Warn("Invalid request body for ResetPassword")
-		return c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid request body"})
+		return utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request body")
 	}
 
 	logrus.WithField("token", token).Info("Reset password execution started")
@@ -73,9 +75,9 @@ func (h *PasswordResetHandler) ResetPassword(c echo.Context) error {
 			statusCode = http.StatusBadRequest
 		}
 		logrus.WithError(err).WithField("token", token).Error("Reset password failed")
-		return c.JSON(statusCode, ErrorResponse{Error: err.Error()})
+		return utils.ErrorResponse(c, statusCode, err.Error())
 	}
 
 	logrus.WithField("token", token).Info("Password reset successfully")
-	return c.JSON(http.StatusOK, map[string]string{"message": "Password has been reset successfully"})
+	return utils.SuccessResponse(c, http.StatusOK, nil, "Password has been reset successfully")
 }

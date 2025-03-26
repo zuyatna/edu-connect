@@ -53,7 +53,7 @@ func (s *Server) GetUserByToken(ctx context.Context, req *emptypb.Empty) (*pb.Ge
 	}
 
 	return &pb.GetUserByTokenResponse{
-		Id:      int32(user.ID),
+		Id:      int32(user.UserID),
 		Name:    user.Name,
 		Email:   user.Email,
 		Balance: float64(user.Balance),

@@ -32,4 +32,11 @@ func Init(e *echo.Echo,
 
 	v1.POST("/reset-password", passwordResetHandler.ResetPassword)
 
+	user := v1.Group("/users")
+
+	user.GET("/:id", userHandler.GetUserByID)
+
+	// user.GET("", userHandler.GetAllUsers)
+	user.GET("", userHandler.GetAllUsersPaginated)
+
 }

@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 	"userService/usecase"
+	"userService/utils"
 
 	"github.com/labstack/echo/v4"
 	"github.com/sirupsen/logrus"
@@ -26,7 +27,7 @@ func (h *VerificationHandler) Verify(c echo.Context) error {
 
 	if token == "" {
 		logrus.Warn("Verification failed: token is missing")
-		return c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Token is required"})
+		return utils.ErrorResponse(c, http.StatusBadRequest, "Token is required")
 	}
 
 	logrus.WithField("token", token).Info("Verification request received")
@@ -35,14 +36,14 @@ func (h *VerificationHandler) Verify(c echo.Context) error {
 	if err != nil {
 		if err == customErr.ErrVerificationTokenInvalid {
 			logrus.WithField("token", token).Warn("Verification failed: invalid or expired token")
-			return c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid or expired token"})
+			return utils.ErrorResponse(c, http.StatusBadRequest, "Invalid or expired token")
 		}
 
 		logrus.WithField("token", token).Error("Verification failed: internal error")
-		return c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
+		return utils.ErrorResponse(c, http.StatusBadRequest, "Internal server error")
 	}
 
 	logrus.WithField("token", token).Info("User verified successfully")
-	return c.JSON(http.StatusOK, map[string]string{"message": "Email verified successfully"})
+	return utils.SuccessResponse(c, http.StatusOK, nil, "Email verified successfully")
 
 }

@@ -3,8 +3,10 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"strconv"
 	"userService/model"
 	"userService/usecase"
+	"userService/utils"
 
 	"github.com/labstack/echo/v4"
 	"github.com/sirupsen/logrus"
@@ -28,8 +30,7 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
-	Message string `json:"message"`
-	Token   string `json:"token"`
+	Token string `json:"token"`
 }
 
 type UserInfoResponse struct {
@@ -65,13 +66,13 @@ func (h *UserHandler) Register(c echo.Context) error {
 	var user model.User
 
 	if err := c.Bind(&user); err != nil {
+
 		logger.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Warn("Invalid request body for Register")
-		return c.JSON(
-			http.StatusBadRequest,
-			map[string]string{"error": "Invalid request body"},
-		)
+
+		return utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request body")
+
 	}
 
 	logger.WithField("email", user.Email).Info("Register request received")
@@ -118,29 +119,23 @@ func (h *UserHandler) Register(c echo.Context) error {
 			"error": errorMessage,
 		}).Error("Register failed")
 
-		return c.JSON(
-			statusCode,
-			map[string]string{"error": errorMessage},
-		)
+		return utils.ErrorResponse(c, statusCode, errorMessage)
 	}
 
 	logger.WithField("email", user.Email).Info("User registered successfully")
 
-	return c.JSON(
-		http.StatusCreated,
-		map[string]string{"message": "User register successful"},
-	)
+	return utils.SuccessResponse(c, http.StatusCreated, nil, "User register successful")
 }
 
 func (h *UserHandler) Login(c echo.Context) error {
 	var data LoginRequest
 
 	if err := c.Bind(&data); err != nil {
+
 		logger.Warn("Invalid request body for Login")
-		return c.JSON(
-			http.StatusBadRequest,
-			map[string]string{"error": "Invalid request body"},
-		)
+
+		return utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request body")
+
 	}
 
 	logger.WithField("email", data.Email).Info("Login request received")
@@ -184,45 +179,14 @@ func (h *UserHandler) Login(c echo.Context) error {
 			"error": errorMessage,
 		}).Warn("Login failed")
 
-		return c.JSON(statusCode, ErrorResponse{Error: errorMessage})
+		return utils.ErrorResponse(c, statusCode, errorMessage)
 	}
 
 	logger.WithField("email", data.Email).Info("User logged in successfully")
 
-	return c.JSON(http.StatusOK, LoginResponse{
-		Message: "Login successful",
-		Token:   token,
-	})
-}
-
-func (h *UserHandler) VerifyEmail(c echo.Context) error {
-	email := c.QueryParam("email")
-	if email == "" {
-		logger.Warn("Verify email failed: email query param is empty")
-		return c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Email is required"})
-	}
-
-	logger.WithField("email", email).Info("Verification request received")
-
-	err := h.userUseCase.UpdateIsVerified(email)
-	if err != nil {
-		var statusCode int
-		if errors.Is(err, customErr.ErrLoginEmailNotFound) {
-			statusCode = http.StatusNotFound
-		} else {
-			statusCode = http.StatusInternalServerError
-		}
-
-		logger.WithFields(logrus.Fields{
-			"email": email,
-			"error": err.Error(),
-		}).Error("Email verification failed")
-
-		return c.JSON(statusCode, ErrorResponse{Error: err.Error()})
-	}
-
-	logger.WithField("email", email).Info("User email verified successfully")
-	return c.JSON(http.StatusOK, map[string]string{"message": "Email verified successfully"})
+	return utils.SuccessResponse(c, http.StatusOK, LoginResponse{
+		Token: token,
+	}, "Login successful")
 }
 
 func (h *UserHandler) ForgotPassword(c echo.Context) error {
@@ -230,7 +194,7 @@ func (h *UserHandler) ForgotPassword(c echo.Context) error {
 
 	if err := c.Bind(&req); err != nil {
 		logger.Warn("Invalid request body for ForgotPassword")
-		return c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid request body"})
+		return utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request body")
 	}
 
 	logger.WithField("email", req.Email).Info("Forgot password request received")
@@ -251,11 +215,13 @@ func (h *UserHandler) ForgotPassword(c echo.Context) error {
 			"error": err.Error(),
 		}).Error("Forgot password failed")
 
-		return c.JSON(statusCode, ErrorResponse{Error: err.Error()})
+		return utils.ErrorResponse(c, statusCode, err.Error())
+
 	}
 
 	logger.WithField("email", req.Email).Info("Password reset successfully")
-	return c.JSON(http.StatusOK, map[string]string{"message": "Password has been reset"})
+
+	return utils.SuccessResponse(c, http.StatusOK, nil, "Password has been reset")
 }
 
 func (h *UserHandler) UpdateBalance(c echo.Context) error {
@@ -263,7 +229,7 @@ func (h *UserHandler) UpdateBalance(c echo.Context) error {
 
 	if err := c.Bind(&req); err != nil {
 		logger.Warn("Invalid request body for UpdateBalance")
-		return c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid request body"})
+		return utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request body")
 	}
 
 	logger.WithFields(logrus.Fields{
@@ -288,7 +254,7 @@ func (h *UserHandler) UpdateBalance(c echo.Context) error {
 			"error":   err.Error(),
 		}).Error("Update balance failed")
 
-		return c.JSON(statusCode, ErrorResponse{Error: err.Error()})
+		return utils.ErrorResponse(c, statusCode, err.Error())
 	}
 
 	logger.WithFields(logrus.Fields{
@@ -296,5 +262,66 @@ func (h *UserHandler) UpdateBalance(c echo.Context) error {
 		"balance": req.Balance,
 	}).Info("User balance updated successfully")
 
-	return c.JSON(http.StatusOK, map[string]string{"message": "Balance updated successfully"})
+	return utils.SuccessResponse(c, http.StatusOK, nil, "Balance updated successfully")
+}
+
+func (h *UserHandler) GetUserByID(c echo.Context) error {
+	idParam := c.Param("id")
+
+	idUint, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		logger.WithField("id", idParam).Warn("Invalid user ID param")
+		return utils.ErrorResponse(c, http.StatusBadRequest, "Invalid user ID")
+	}
+
+	user, err := h.userUseCase.GetByID(uint(idUint))
+	if err != nil {
+		if errors.Is(err, customErr.ErrLoginEmailNotFound) {
+			return utils.ErrorResponse(c, http.StatusNotFound, "User not found")
+		}
+		return utils.ErrorResponse(c, http.StatusInternalServerError, "Internal server error")
+	}
+
+	return utils.SuccessResponse(c, http.StatusOK, user, "User fetched successfully")
+}
+
+func (h *UserHandler) GetAllUsers(c echo.Context) error {
+	users, err := h.userUseCase.GetAll()
+	if err != nil {
+		return utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to get users")
+	}
+
+	return utils.SuccessResponse(c, http.StatusOK, users, "Users fetched successfully")
+}
+
+func (h *UserHandler) GetAllUsersPaginated(c echo.Context) error {
+	pageQuery := c.QueryParam("page")
+	limitQuery := c.QueryParam("limit")
+
+	page, err := strconv.Atoi(pageQuery)
+	if err != nil || page <= 0 {
+		page = 1
+	}
+
+	limit, err := strconv.Atoi(limitQuery)
+	if err != nil || limit <= 0 {
+		limit = 10
+	}
+
+	users, total, err := h.userUseCase.GetAllPaginated(page, limit)
+	if err != nil {
+		return utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to fetch users")
+	}
+
+	response := map[string]interface{}{
+		"items": users,
+		"pagination": map[string]interface{}{
+			"page":      page,
+			"limit":     limit,
+			"totalData": total,
+			"totalPage": int((total + int64(limit) - 1) / int64(limit)),
+		},
+	}
+
+	return utils.SuccessResponse(c, http.StatusOK, response, "Users fetched successfully")
 }
