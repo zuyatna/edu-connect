@@ -4,9 +4,10 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/labstack/echo/v4"
 	"institution-service/httputil"
 	pb "institution-service/pb/institution"
+
+	"github.com/labstack/echo/v4"
 	"google.golang.org/grpc/metadata"
 )
 
@@ -21,14 +22,24 @@ func NewInstitutionHTTPHandler(institutionClient pb.InstitutionServiceClient) *I
 }
 
 func (h *InstitutionHTTPHandler) Routes(e *echo.Echo) {
-	e.POST("/institution/register", h.RegisterInstitution)
-	e.POST("/institution/login", h.LoginInstitution)
+	e.POST("/api/institution/register", h.RegisterInstitution)
+	e.POST("/api/institution/login", h.LoginInstitution)
 
-	e.GET("/institution/:id", AuthMiddleware(h.GetInstitutionByID))
-	e.PUT("/institution/:id", AuthMiddleware(h.UpdateInstitution))
-	e.DELETE("/institution/:id", AuthMiddleware(h.DeleteInstitution))
+	e.GET("/api/institution/:id", AuthMiddleware(h.GetInstitutionByID))
+	e.PUT("/api/institution/:id", AuthMiddleware(h.UpdateInstitution))
+	e.DELETE("/api/institution/:id", AuthMiddleware(h.DeleteInstitution))
 }
 
+// RegisterInstitution godoc
+// @Summary      Register a new institution
+// @Description  Register institution with name, email, etc. Email must be unique and password will be hashed before saved to database.
+// @Tags         Institution
+// @Param        request body model.InstitutionRequest true "Institution created details"
+// @Accept       json
+// @Produce      json
+// @Success      200 {object} model.InstitutionResponse "Institution created successfully"
+// @Failure      500 {object} httputil.HTTPError "Internal server error"
+// @Router       /api/institution/register [post]
 func (h *InstitutionHTTPHandler) RegisterInstitution(c echo.Context) error {
 	req := new(pb.RegisterInstitutionRequest)
 	if err := c.Bind(req); err != nil {
@@ -53,9 +64,22 @@ func (h *InstitutionHTTPHandler) RegisterInstitution(c echo.Context) error {
 		})
 	}
 
-	return c.JSON(http.StatusCreated, res)
+	return c.JSON(http.StatusCreated, map[string]interface{}{
+		"message": "Institution created successfully",
+		"data":    res,
+	})
 }
 
+// LoginInstitution godoc
+// @Summary      Login institution
+// @Description  Login user with email and password.
+// @Tags         Institution
+// @Param        request body model.InstitutionLoginRequest true "Institution login"
+// @Accept       json
+// @Produce      json
+// @Success      200 {object} model.InstitutionToken "Institution login successfully"
+// @Failure      500 {object} httputil.HTTPError "Internal server error"
+// @Router       /api/institution/login [post]
 func (h *InstitutionHTTPHandler) LoginInstitution(c echo.Context) error {
 	req := new(pb.LoginInstitutionRequest)
 	if err := c.Bind(req); err != nil {
@@ -76,9 +100,25 @@ func (h *InstitutionHTTPHandler) LoginInstitution(c echo.Context) error {
 		})
 	}
 
-	return c.JSON(http.StatusOK, res)
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"message": "Institution login successfully",
+		"data":    res,
+	})
 }
 
+// GetInstitutionByID godoc
+// @Summary      Get Institution by ID
+// @Description  Get data institution by ID with authorization.
+// @Tags         Institution
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        Authorization  header    string  true  "Bearer token"
+// @Param        id            path      string    true  "Institution ID"
+// @Success      200  {object}  model.InstitutionResponse "Success get institution data"
+// @Failure      401  {object}  httputil.HTTPError "Unauthorized"
+// @Failure      404  {object}  httputil.HTTPError "Data not found"
+// @Router       /api/institution/{id} [get]
 func (h *InstitutionHTTPHandler) GetInstitutionByID(c echo.Context) error {
 	req := new(pb.GetInstitutionByIDRequest)
 	req.InstitutionId = c.Param("id")
@@ -90,9 +130,27 @@ func (h *InstitutionHTTPHandler) GetInstitutionByID(c echo.Context) error {
 		})
 	}
 
-	return c.JSON(http.StatusOK, res)
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"message": "Success get institution data",
+		"data":    res,
+	})
 }
 
+// UpdateInstitution godoc
+// @Summary      Update institution
+// @Description  Update an existing institution with authorization.
+// @Tags         Institution
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        Authorization  header    string  true  "Bearer token"
+// @Param        id            path      string    true  "Institution ID"
+// @Param        user       body      model.InstitutionRequest  true  "Updated institution data"
+// @Success      200  {object}  model.InstitutionResponse "Success update institution data"
+// @Failure      401  {object}  httputil.HTTPError "Unauthorized"
+// @Failure      404  {object}  httputil.HTTPError "User not found"
+// @Failure      500  {object}  httputil.HTTPError "Internal server error"
+// @Router       /api/institution/{id} [put]
 func (h *InstitutionHTTPHandler) UpdateInstitution(c echo.Context) error {
 	req := new(pb.UpdateInstitutionRequest)
 	if err := c.Bind(req); err != nil {
@@ -109,21 +167,39 @@ func (h *InstitutionHTTPHandler) UpdateInstitution(c echo.Context) error {
 		})
 	}
 
-	return c.JSON(http.StatusOK, res)
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"message": "Success update institution data",
+		"data":    res,
+	})
 }
 
+// DeleteInstitution godoc
+// @Summary      Delete Institution
+// @Description  Delete an existing institution with authorization.
+// @Tags         Institution
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        Authorization  header    string  true  "Bearer token"
+// @Param        id            path      string     true  "Institution ID"
+// @Success      200  {object}  model.InstitutionDeleteResponse "Success delete institution data"
+// @Failure      500  {object}  httputil.HTTPError "Internal server error"
+// @Router       /api/institution/{id} [delete]
 func (h *InstitutionHTTPHandler) DeleteInstitution(c echo.Context) error {
 	req := new(pb.DeleteInstitutionRequest)
 	req.InstitutionId = c.Param("id")
 
-	res, err := h.institutionClient.DeleteInstitution(c.Request().Context(), req)
+	_, err := h.institutionClient.DeleteInstitution(c.Request().Context(), req)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, httputil.HTTPError{
 			Message: err.Error(),
 		})
 	}
 
-	return c.JSON(http.StatusOK, res)
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"message": "Success delete institution data",
+		"data":    map[string]interface{}{},
+	})
 }
 
 func AuthMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
