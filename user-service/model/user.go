@@ -17,3 +17,10 @@ type User struct {
 	UpdatedAt  time.Time      `json:"-"`
 	DeletedAt  gorm.DeletedAt `gorm:"index" json:"-"`
 }
+
+type UserResponse struct {
+	UserID     uint   `json:"user_id"`
+	Name       string `json:"name"`
+	Email      string `json:"email"`
+	IsVerified bool   `json:"is_verified"`
+}

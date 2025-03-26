@@ -282,7 +282,7 @@ func (h *UserHandler) GetUserByID(c echo.Context) error {
 		return utils.ErrorResponse(c, http.StatusInternalServerError, "Internal server error")
 	}
 
-	return utils.SuccessResponse(c, http.StatusOK, user, "User fetched successfully")
+	return utils.SuccessResponse(c, http.StatusOK, utils.ConvertToUserResponse(*user), "User fetched successfully")
 }
 
 func (h *UserHandler) GetAllUsers(c echo.Context) error {
@@ -313,8 +313,10 @@ func (h *UserHandler) GetAllUsersPaginated(c echo.Context) error {
 		return utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to fetch users")
 	}
 
+	userRes := utils.ConvertToUserResponseList(users)
+
 	response := map[string]interface{}{
-		"items": users,
+		"items": userRes,
 		"pagination": map[string]interface{}{
 			"page":      page,
 			"limit":     limit,

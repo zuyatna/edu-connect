@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"userService/model"
+
 	"github.com/labstack/echo/v4"
 )
 
@@ -24,4 +26,21 @@ func ErrorResponse(c echo.Context, statusCode int, errMsg string) error {
 		Message: errMsg,
 		Data:    nil,
 	})
+}
+
+func ConvertToUserResponse(user model.User) model.UserResponse {
+	return model.UserResponse{
+		UserID:     user.UserID,
+		Name:       user.Name,
+		Email:      user.Email,
+		IsVerified: user.IsVerified,
+	}
+}
+
+func ConvertToUserResponseList(users []model.User) []model.UserResponse {
+	var res []model.UserResponse
+	for _, user := range users {
+		res = append(res, ConvertToUserResponse(user))
+	}
+	return res
 }
