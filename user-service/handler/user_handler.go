@@ -62,6 +62,16 @@ type UpdateBalanceRequest struct {
 
 var logger = logrus.New()
 
+// Register godoc
+// @Summary Register a new user
+// @Description Register user with name, email and password
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Param user body model.User true "User Register Input"
+// @Success 201 {object} map[string]interface{}
+// @Failure 400,409,500 {object} map[string]interface{}
+// @Router /v1/register [post]
 func (h *UserHandler) Register(c echo.Context) error {
 	var user model.User
 
@@ -127,6 +137,16 @@ func (h *UserHandler) Register(c echo.Context) error {
 	return utils.SuccessResponse(c, http.StatusCreated, nil, "User register successful")
 }
 
+// Login godoc
+// @Summary User login
+// @Description Login with email and password
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Param login body LoginRequest true "Login input"
+// @Success 200 {object} LoginResponse
+// @Failure 400,401,404,500 {object} map[string]interface{}
+// @Router /v1/login [post]
 func (h *UserHandler) Login(c echo.Context) error {
 	var data LoginRequest
 
@@ -189,6 +209,16 @@ func (h *UserHandler) Login(c echo.Context) error {
 	}, "Login successful")
 }
 
+// ForgotPassword godoc
+// @Summary Reset user password
+// @Description Send email and new password to reset user password
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Param body body ForgotPasswordRequest true "Forgot Password Payload"
+// @Success 200 {object} utils.APIResponse
+// @Failure 400,404,500 {object} utils.APIResponse
+// @Router /v1/forgot-password [post]
 func (h *UserHandler) ForgotPassword(c echo.Context) error {
 	var req ForgotPasswordRequest
 
@@ -222,6 +252,79 @@ func (h *UserHandler) ForgotPassword(c echo.Context) error {
 	logger.WithField("email", req.Email).Info("Password reset successfully")
 
 	return utils.SuccessResponse(c, http.StatusOK, nil, "Password has been reset")
+}
+
+// GetUserByID godoc
+// @Summary Get user by ID
+// @Description Retrieve a single user by their ID
+// @Tags Users
+// @Produce json
+// @Param id path int true "User ID"
+// @Success 200 {object} utils.APIResponse
+// @Failure 400,404,500 {object} utils.APIResponse
+// @Router /v1/users/{id} [get]
+func (h *UserHandler) GetUserByID(c echo.Context) error {
+	idParam := c.Param("id")
+
+	idUint, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		logger.WithField("id", idParam).Warn("Invalid user ID param")
+		return utils.ErrorResponse(c, http.StatusBadRequest, "Invalid user ID")
+	}
+
+	user, err := h.userUseCase.GetByID(uint(idUint))
+	if err != nil {
+		if errors.Is(err, customErr.ErrLoginEmailNotFound) {
+			return utils.ErrorResponse(c, http.StatusNotFound, "User not found")
+		}
+		return utils.ErrorResponse(c, http.StatusInternalServerError, "Internal server error")
+	}
+
+	return utils.SuccessResponse(c, http.StatusOK, utils.ConvertToUserResponse(*user), "User fetched successfully")
+}
+
+// GetAllUsersPaginated godoc
+// @Summary Get all users with pagination
+// @Description Retrieve list of users with pagination metadata
+// @Tags Users
+// @Produce json
+// @Param page query int false "Page number"
+// @Param limit query int false "Items per page"
+// @Success 200 {object} utils.APIResponse
+// @Failure 500 {object} utils.APIResponse
+// @Router /v1/users [get]
+func (h *UserHandler) GetAllUsersPaginated(c echo.Context) error {
+	pageQuery := c.QueryParam("page")
+	limitQuery := c.QueryParam("limit")
+
+	page, err := strconv.Atoi(pageQuery)
+	if err != nil || page <= 0 {
+		page = 1
+	}
+
+	limit, err := strconv.Atoi(limitQuery)
+	if err != nil || limit <= 0 {
+		limit = 10
+	}
+
+	users, total, err := h.userUseCase.GetAllPaginated(page, limit)
+	if err != nil {
+		return utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to fetch users")
+	}
+
+	userRes := utils.ConvertToUserResponseList(users)
+
+	response := map[string]interface{}{
+		"items": userRes,
+		"pagination": map[string]interface{}{
+			"page":      page,
+			"limit":     limit,
+			"totalData": total,
+			"totalPage": int((total + int64(limit) - 1) / int64(limit)),
+		},
+	}
+
+	return utils.SuccessResponse(c, http.StatusOK, response, "Users fetched successfully")
 }
 
 func (h *UserHandler) UpdateBalance(c echo.Context) error {
@@ -263,67 +366,4 @@ func (h *UserHandler) UpdateBalance(c echo.Context) error {
 	}).Info("User balance updated successfully")
 
 	return utils.SuccessResponse(c, http.StatusOK, nil, "Balance updated successfully")
-}
-
-func (h *UserHandler) GetUserByID(c echo.Context) error {
-	idParam := c.Param("id")
-
-	idUint, err := strconv.ParseUint(idParam, 10, 32)
-	if err != nil {
-		logger.WithField("id", idParam).Warn("Invalid user ID param")
-		return utils.ErrorResponse(c, http.StatusBadRequest, "Invalid user ID")
-	}
-
-	user, err := h.userUseCase.GetByID(uint(idUint))
-	if err != nil {
-		if errors.Is(err, customErr.ErrLoginEmailNotFound) {
-			return utils.ErrorResponse(c, http.StatusNotFound, "User not found")
-		}
-		return utils.ErrorResponse(c, http.StatusInternalServerError, "Internal server error")
-	}
-
-	return utils.SuccessResponse(c, http.StatusOK, utils.ConvertToUserResponse(*user), "User fetched successfully")
-}
-
-func (h *UserHandler) GetAllUsers(c echo.Context) error {
-	users, err := h.userUseCase.GetAll()
-	if err != nil {
-		return utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to get users")
-	}
-
-	return utils.SuccessResponse(c, http.StatusOK, users, "Users fetched successfully")
-}
-
-func (h *UserHandler) GetAllUsersPaginated(c echo.Context) error {
-	pageQuery := c.QueryParam("page")
-	limitQuery := c.QueryParam("limit")
-
-	page, err := strconv.Atoi(pageQuery)
-	if err != nil || page <= 0 {
-		page = 1
-	}
-
-	limit, err := strconv.Atoi(limitQuery)
-	if err != nil || limit <= 0 {
-		limit = 10
-	}
-
-	users, total, err := h.userUseCase.GetAllPaginated(page, limit)
-	if err != nil {
-		return utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to fetch users")
-	}
-
-	userRes := utils.ConvertToUserResponseList(users)
-
-	response := map[string]interface{}{
-		"items": userRes,
-		"pagination": map[string]interface{}{
-			"page":      page,
-			"limit":     limit,
-			"totalData": total,
-			"totalPage": int((total + int64(limit) - 1) / int64(limit)),
-		},
-	}
-
-	return utils.SuccessResponse(c, http.StatusOK, response, "Users fetched successfully")
 }

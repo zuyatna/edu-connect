@@ -12,8 +12,16 @@ import (
 	"userService/usecase"
 
 	"github.com/labstack/echo/v4"
+	echoSwagger "github.com/swaggo/echo-swagger"
+
+	_ "userService/docs"
 )
 
+// @title User Service API
+// @version 1.0
+// @description This is a user service.
+// @host localhost:8080
+// @BasePath /v1
 func main() {
 
 	db := config.InitDB()
@@ -60,6 +68,7 @@ func main() {
 
 		e := echo.New()
 		route.Init(e, userHandler, *verificationHandler, *passwordResetHandler)
+		e.GET("/swagger/*", echoSwagger.WrapHandler)
 
 		e.Logger.Fatal(e.Start(":" + os.Getenv("PORT")))
 

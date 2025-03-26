@@ -36,7 +36,6 @@ func Init(e *echo.Echo,
 
 	user.GET("/:id", userHandler.GetUserByID)
 
-	// user.GET("", userHandler.GetAllUsers)
 	user.GET("", userHandler.GetAllUsersPaginated)
 
 }
