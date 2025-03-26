@@ -16,11 +16,12 @@ import (
 
 type IPostHandler interface {
 	CreatePost(ctx context.Context, req *pb.CreatePostRequest) (*pb.PostResponse, error)
+	GetAllPost(ctx context.Context, req *pb.GetAllPostRequest) (*pb.GetAllPostResponse, error)
 	GetPostByID(ctx context.Context, req *pb.GetPostByIDRequest) (*pb.PostResponse, error)
 	GetAllPostByInstitutionID(ctx context.Context, req *pb.GetAllPostByInstitutionIDRequest) (*pb.GetAllPostByInstitutionIDResponse, error)
-	AddPostFundAchieved(ctx context.Context, req *pb.AddPostFundAchievedRequest) (*pb.AddPostFundAchievedResponse, error)
 	UpdatePost(ctx context.Context, req *pb.UpdatePostRequest) (*pb.PostResponse, error)
 	DeletePost(ctx context.Context, req *pb.DeletePostRequest) (*pb.DeletePostResponse, error)
+	AddPostFundAchieved(ctx context.Context, req *pb.AddPostFundAchievedRequest) (*pb.AddPostFundAchievedResponse, error)
 }
 
 type PostServer struct {
@@ -91,7 +92,36 @@ func (s *PostServer) CreatePost(ctx context.Context, req *pb.CreatePostRequest) 
 	}, nil
 }
 
+func (s *PostServer) GetAllPost(ctx context.Context, req *pb.GetAllPostRequest) (*pb.GetAllPostResponse, error) {
+	posts, err := s.postUsecase.GetAllPost(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "get all post error: %v", err)
+	}
+
+	var postResponses []*pb.PostResponse
+	for _, post := range posts {
+		postResponses = append(postResponses, &pb.PostResponse{
+			PostId:       post.PostID.String(),
+			Title:        post.Title,
+			Body:         post.Body,
+			DateStart:    post.DateStart.Format("2006-01-02"),
+			DateEnd:      post.DateEnd.Format("2006-01-02"),
+			FundTarget:   float32(post.FundTarget),
+			FuncAchieved: float32(post.FundAchieved),
+		})
+	}
+
+	return &pb.GetAllPostResponse{
+		Posts: postResponses,
+	}, nil
+}
+
 func (s *PostServer) GetPostByID(ctx context.Context, req *pb.GetPostByIDRequest) (*pb.PostResponse, error) {
+	authenticatedInstitutionID, ok := ctx.Value(middlewares.InstitutionIDKey).(string)
+	if !ok {
+		return nil, status.Errorf(codes.Internal, "failed to get authenticated institution ID from context")
+	}
+
 	postID, err := uuid.Parse(req.PostId)
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid post ID format: %v", err)
@@ -100,6 +130,10 @@ func (s *PostServer) GetPostByID(ctx context.Context, req *pb.GetPostByIDRequest
 	post, err := s.postUsecase.GetPostByID(ctx, postID)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "get post by ID error: %v", err)
+	}
+
+	if post.InstitutionID.String() != authenticatedInstitutionID {
+		return nil, status.Errorf(codes.PermissionDenied, "unauthorized access")
 	}
 
 	return &pb.PostResponse{
@@ -114,9 +148,18 @@ func (s *PostServer) GetPostByID(ctx context.Context, req *pb.GetPostByIDRequest
 }
 
 func (s *PostServer) GetAllPostByInstitutionID(ctx context.Context, req *pb.GetAllPostByInstitutionIDRequest) (*pb.GetAllPostByInstitutionIDResponse, error) {
+	authenticatedInstitutionID, ok := ctx.Value(middlewares.InstitutionIDKey).(string)
+	if !ok {
+		return nil, status.Errorf(codes.Internal, "failed to get authenticated institution ID from context")
+	}
+
 	institutionID, err := uuid.Parse(req.InstitutionId)
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid institution ID format: %v", err)
+	}
+
+	if institutionID.String() != authenticatedInstitutionID {
+		return nil, status.Errorf(codes.PermissionDenied, "unauthorized access")
 	}
 
 	posts, err := s.postUsecase.GetAllPostByInstitutionID(ctx, institutionID)
@@ -156,6 +199,15 @@ func (s *PostServer) UpdatePost(ctx context.Context, req *pb.UpdatePostRequest) 
 	postID, err := uuid.Parse(req.PostId)
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid post ID format: %v", err)
+	}
+
+	getPost, err := s.postUsecase.GetPostByID(ctx, postID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "get post by ID error: %v", err)
+	}
+
+	if getPost.InstitutionID.String() != authenticatedInstitutionID {
+		return nil, status.Errorf(codes.PermissionDenied, "unauthorized access")
 	}
 
 	var dateStart, dateEnd time.Time
@@ -204,6 +256,36 @@ func (s *PostServer) UpdatePost(ctx context.Context, req *pb.UpdatePostRequest) 
 	}, nil
 }
 
+func (s *PostServer) DeletePost(ctx context.Context, req *pb.DeletePostRequest) (*pb.DeletePostResponse, error) {
+	authenticatedInstitutionID, ok := ctx.Value(middlewares.InstitutionIDKey).(string)
+	if !ok {
+		return nil, status.Errorf(codes.Internal, "failed to get authenticated institution ID from context")
+	}
+
+	postID, err := uuid.Parse(req.PostId)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid post ID format: %v", err)
+	}
+
+	getPost, err := s.postUsecase.GetPostByID(ctx, postID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "get post by ID error: %v", err)
+	}
+
+	if getPost.InstitutionID.String() != authenticatedInstitutionID {
+		return nil, status.Errorf(codes.PermissionDenied, "unauthorized access")
+	}
+
+	err = s.postUsecase.DeletePost(ctx, postID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "delete post error: %v", err)
+	}
+
+	return &pb.DeletePostResponse{
+		Message: "Post deleted successfully",
+	}, nil
+}
+
 func (s *PostServer) AddPostFundAchieved(ctx context.Context, req *pb.AddPostFundAchievedRequest) (*pb.AddPostFundAchievedResponse, error) {
 	postID, err := uuid.Parse(req.PostId)
 	if err != nil {
@@ -220,21 +302,5 @@ func (s *PostServer) AddPostFundAchieved(ctx context.Context, req *pb.AddPostFun
 	return &pb.AddPostFundAchievedResponse{
 		PostId:       post.PostID.String(),
 		FuncAchieved: float32(post.FundAchieved),
-	}, nil
-}
-
-func (s *PostServer) DeletePost(ctx context.Context, req *pb.DeletePostRequest) (*pb.DeletePostResponse, error) {
-	postID, err := uuid.Parse(req.PostId)
-	if err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "invalid post ID format: %v", err)
-	}
-
-	err = s.postUsecase.DeletePost(ctx, postID)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "delete post error: %v", err)
-	}
-
-	return &pb.DeletePostResponse{
-		Message: "Post deleted successfully",
 	}, nil
 }

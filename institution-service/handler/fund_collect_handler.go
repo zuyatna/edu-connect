@@ -12,8 +12,8 @@ import (
 )
 
 type IFundCollectHandler interface {
-	CreateFundCollect(ctx context.Context, fund_collect *model.FundCollect) (*model.FundCollect, error)
-	GetFundCollectByPostID(ctx context.Context, post_id string) ([]model.FundCollect, error)
+	CreateFundCollect(ctx context.Context, fundCollect *model.FundCollect) (*model.FundCollect, error)
+	GetFundCollectByPostID(ctx context.Context, postID string) ([]model.FundCollect, error)
 }
 
 type FundCollectServer struct {

@@ -22,24 +22,24 @@ func NewInstitutionHTTPHandler(institutionClient pb.InstitutionServiceClient) *I
 }
 
 func (h *InstitutionHTTPHandler) Routes(e *echo.Echo) {
-	e.POST("/api/institution/register", h.RegisterInstitution)
-	e.POST("/api/institution/login", h.LoginInstitution)
+	e.POST("/v1/institution/register", h.RegisterInstitution)
+	e.POST("/v1/institution/login", h.LoginInstitution)
 
-	e.GET("/api/institution/:id", AuthMiddleware(h.GetInstitutionByID))
-	e.PUT("/api/institution/:id", AuthMiddleware(h.UpdateInstitution))
-	e.DELETE("/api/institution/:id", AuthMiddleware(h.DeleteInstitution))
+	e.GET("/v1/institution/:id", AuthMiddleware(h.GetInstitutionByID))
+	e.PUT("/v1/institution/:id", AuthMiddleware(h.UpdateInstitution))
+	e.DELETE("/v1/institution/:id", AuthMiddleware(h.DeleteInstitution))
 }
 
 // RegisterInstitution godoc
-// @Summary      Register a new institution
+// @Summary      Register a new Institution.
 // @Description  Register institution with name, email, etc. Email must be unique and password will be hashed before saved to database.
 // @Tags         Institution
-// @Param        request body model.InstitutionRequest true "Institution created details"
 // @Accept       json
 // @Produce      json
+// @Param        request body model.InstitutionRequest true "Institution created details"
 // @Success      200 {object} model.InstitutionResponse "Institution created successfully"
 // @Failure      500 {object} httputil.HTTPError "Internal server error"
-// @Router       /api/institution/register [post]
+// @Router       /v1/institution/register [post]
 func (h *InstitutionHTTPHandler) RegisterInstitution(c echo.Context) error {
 	req := new(pb.RegisterInstitutionRequest)
 	if err := c.Bind(req); err != nil {
@@ -71,15 +71,15 @@ func (h *InstitutionHTTPHandler) RegisterInstitution(c echo.Context) error {
 }
 
 // LoginInstitution godoc
-// @Summary      Login institution
-// @Description  Login user with email and password.
+// @Summary      Login Institution.
+// @Description  Login Institution with email and password.
 // @Tags         Institution
-// @Param        request body model.InstitutionLoginRequest true "Institution login"
 // @Accept       json
 // @Produce      json
+// @Param        request body model.InstitutionLoginRequest true "Institution login"
 // @Success      200 {object} model.InstitutionToken "Institution login successfully"
 // @Failure      500 {object} httputil.HTTPError "Internal server error"
-// @Router       /api/institution/login [post]
+// @Router       /v1/institution/login [post]
 func (h *InstitutionHTTPHandler) LoginInstitution(c echo.Context) error {
 	req := new(pb.LoginInstitutionRequest)
 	if err := c.Bind(req); err != nil {
@@ -107,7 +107,7 @@ func (h *InstitutionHTTPHandler) LoginInstitution(c echo.Context) error {
 }
 
 // GetInstitutionByID godoc
-// @Summary      Get Institution by ID
+// @Summary      Get Institution by ID.
 // @Description  Get data institution by ID with authorization.
 // @Tags         Institution
 // @Accept       json
@@ -118,7 +118,7 @@ func (h *InstitutionHTTPHandler) LoginInstitution(c echo.Context) error {
 // @Success      200  {object}  model.InstitutionResponse "Success get institution data"
 // @Failure      401  {object}  httputil.HTTPError "Unauthorized"
 // @Failure      404  {object}  httputil.HTTPError "Data not found"
-// @Router       /api/institution/{id} [get]
+// @Router       /v1/institution/{id} [get]
 func (h *InstitutionHTTPHandler) GetInstitutionByID(c echo.Context) error {
 	req := new(pb.GetInstitutionByIDRequest)
 	req.InstitutionId = c.Param("id")
@@ -137,7 +137,7 @@ func (h *InstitutionHTTPHandler) GetInstitutionByID(c echo.Context) error {
 }
 
 // UpdateInstitution godoc
-// @Summary      Update institution
+// @Summary      Update Institution.
 // @Description  Update an existing institution with authorization.
 // @Tags         Institution
 // @Accept       json
@@ -149,8 +149,7 @@ func (h *InstitutionHTTPHandler) GetInstitutionByID(c echo.Context) error {
 // @Success      200  {object}  model.InstitutionResponse "Success update institution data"
 // @Failure      401  {object}  httputil.HTTPError "Unauthorized"
 // @Failure      404  {object}  httputil.HTTPError "User not found"
-// @Failure      500  {object}  httputil.HTTPError "Internal server error"
-// @Router       /api/institution/{id} [put]
+// @Router       /v1/institution/{id} [put]
 func (h *InstitutionHTTPHandler) UpdateInstitution(c echo.Context) error {
 	req := new(pb.UpdateInstitutionRequest)
 	if err := c.Bind(req); err != nil {
@@ -174,7 +173,7 @@ func (h *InstitutionHTTPHandler) UpdateInstitution(c echo.Context) error {
 }
 
 // DeleteInstitution godoc
-// @Summary      Delete Institution
+// @Summary      Delete Institution.
 // @Description  Delete an existing institution with authorization.
 // @Tags         Institution
 // @Accept       json
@@ -184,7 +183,7 @@ func (h *InstitutionHTTPHandler) UpdateInstitution(c echo.Context) error {
 // @Param        id            path      string     true  "Institution ID"
 // @Success      200  {object}  model.InstitutionDeleteResponse "Success delete institution data"
 // @Failure      500  {object}  httputil.HTTPError "Internal server error"
-// @Router       /api/institution/{id} [delete]
+// @Router       /v1/institution/{id} [delete]
 func (h *InstitutionHTTPHandler) DeleteInstitution(c echo.Context) error {
 	req := new(pb.DeleteInstitutionRequest)
 	req.InstitutionId = c.Param("id")

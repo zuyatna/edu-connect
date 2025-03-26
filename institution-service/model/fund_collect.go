@@ -26,3 +26,12 @@ type FundCollectRequest struct {
 	Amount        float64 `json:"amount"`
 	TransactionID string  `json:"transaction_id"`
 }
+
+type FundCollectResponse struct {
+	FundCollectID string  `json:"fund_collect_id"`
+	PostID        string  `json:"post_id"`
+	UserID        string  `json:"user_id"`
+	UserName      string  `json:"user_name"`
+	Amount        float64 `json:"amount"`
+	TransactionID string  `json:"transaction_id"`
+}
