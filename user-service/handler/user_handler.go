@@ -367,3 +367,44 @@ func (h *UserHandler) UpdateBalance(c echo.Context) error {
 
 	return utils.SuccessResponse(c, http.StatusOK, nil, "Balance updated successfully")
 }
+
+func (h *UserHandler) UpdateBalance(c echo.Context) error {
+	var req UpdateBalanceRequest
+
+	if err := c.Bind(&req); err != nil {
+		logger.Warn("Invalid request body for UpdateBalance")
+		return c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid request body"})
+	}
+
+	logger.WithFields(logrus.Fields{
+		"email":   req.Email,
+		"balance": req.Balance,
+	}).Info("Update balance request received")
+
+	err := h.userUseCase.UpdateBalance(req.Email, req.Balance)
+	if err != nil {
+		var statusCode int
+		if errors.Is(err, customErr.ErrRegisterInvalidEmail) {
+			statusCode = http.StatusBadRequest
+		} else if errors.Is(err, customErr.ErrLoginEmailNotFound) {
+			statusCode = http.StatusNotFound
+		} else {
+			statusCode = http.StatusInternalServerError
+		}
+
+		logger.WithFields(logrus.Fields{
+			"email":   req.Email,
+			"balance": req.Balance,
+			"error":   err.Error(),
+		}).Error("Update balance failed")
+
+		return c.JSON(statusCode, ErrorResponse{Error: err.Error()})
+	}
+
+	logger.WithFields(logrus.Fields{
+		"email":   req.Email,
+		"balance": req.Balance,
+	}).Info("User balance updated successfully")
+
+	return c.JSON(http.StatusOK, map[string]string{"message": "Balance updated successfully"})
+}

@@ -44,3 +44,7 @@ type PostFundAchievedResponse struct {
 	PostID       string  `json:"post_id"`
 	FundAchieved float32 `json:"fund_achieved"`
 }
+
+type PostDeleteResponse struct {
+	Message string `json:"message"`
+}

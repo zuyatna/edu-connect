@@ -5,12 +5,14 @@ import (
 	"errors"
 	"strings"
 
+	"institution-service/model"
+
 	"github.com/google/uuid"
-	"github.com/zuyatna/edu-connect/institution-service/model"
 )
 
 type IPostUsecase interface {
 	CreatePost(ctx context.Context, post *model.Post) (*model.Post, error)
+	GetAllPost(ctx context.Context) ([]model.Post, error)
 	GetPostByID(ctx context.Context, post_id uuid.UUID) (*model.Post, error)
 	GetAllPostByInstitutionID(ctx context.Context, institutionID uuid.UUID) ([]model.Post, error)
 	UpdatePost(ctx context.Context, post *model.Post) (*model.Post, error)
@@ -63,6 +65,10 @@ func (u *PostUsecase) CreatePost(ctx context.Context, post *model.Post) (*model.
 	return u.postRepository.CreatePost(ctx, post)
 }
 
+func (u *PostUsecase) GetAllPost(ctx context.Context) ([]model.Post, error) {
+	return u.postRepository.GetAllPost(ctx)
+}
+
 func (u *PostUsecase) GetPostByID(ctx context.Context, post_id uuid.UUID) (*model.Post, error) {
 	return u.postRepository.GetPostByID(ctx, post_id)
 }
@@ -72,6 +78,18 @@ func (u *PostUsecase) GetAllPostByInstitutionID(ctx context.Context, institution
 }
 
 func (u *PostUsecase) UpdatePost(ctx context.Context, post *model.Post) (*model.Post, error) {
+
+	getPost, err := u.postRepository.GetPostByID(ctx, post.PostID)
+	if err != nil {
+		return nil, err
+	}
+
+	if post.FundTarget == 0 {
+		post.FundTarget = getPost.FundTarget
+	} else if post.FundTarget < 0 {
+		return nil, errors.New("fund Target must be greater than 0")
+	}
+
 	return u.postRepository.UpdatePost(ctx, post)
 }
 

@@ -1,0 +1,43 @@
+name: Microservices CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.24.0
+
+      - name: Install protoc and mockgen
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+          go install github.com/golang/mock/mockgen@latest
+
+      # User Service Steps
+      - name: Generate Go files from proto - Institution Service
+        run: |
+          cd institution-service
+          protoc --go_out=. --go-grpc_out=. pb/*.proto
+
+      - name: Generate mock files - Institution Service
+        run: cd institution-service && make mockgen
+
+      - name: Build - Institution Service
+        run: cd institution-service && go build -v ./...
+
+      - name: Test - Institution Service
+        run: cd institution-service && go test -v ./...

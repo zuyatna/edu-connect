@@ -3,16 +3,17 @@ package handler
 import (
 	"context"
 
+	"institution-service/model"
+	pbFundCollect "institution-service/pb/fund_collect"
+	pbPost "institution-service/pb/post"
+	"institution-service/usecase"
+
 	"github.com/google/uuid"
-	"github.com/zuyatna/edu-connect/institution-service/model"
-	pbFundCollect "github.com/zuyatna/edu-connect/institution-service/pb/fund_collect"
-	pbPost "github.com/zuyatna/edu-connect/institution-service/pb/post"
-	"github.com/zuyatna/edu-connect/institution-service/usecase"
 )
 
 type IFundCollectHandler interface {
-	CreateFundCollect(ctx context.Context, fund_collect *model.FundCollect) (*model.FundCollect, error)
-	GetFundCollectByPostID(ctx context.Context, post_id string) ([]model.FundCollect, error)
+	CreateFundCollect(ctx context.Context, fundCollect *model.FundCollect) (*model.FundCollect, error)
+	GetFundCollectByPostID(ctx context.Context, postID string) ([]model.FundCollect, error)
 }
 
 type FundCollectServer struct {
@@ -35,14 +36,9 @@ func (s *FundCollectServer) CreateFundCollect(ctx context.Context, req *pbFundCo
 		return nil, err
 	}
 
-	userID, err := uuid.Parse(req.UserId)
-	if err != nil {
-		return nil, err
-	}
-
 	fund_collect_model := &model.FundCollect{
 		PostID:        postID,
-		UserID:        userID,
+		UserID:        req.UserId,
 		UserName:      req.UserName,
 		Amount:        float64(req.Amount),
 		TransactionID: req.TransactionId,
@@ -60,7 +56,7 @@ func (s *FundCollectServer) CreateFundCollect(ctx context.Context, req *pbFundCo
 	return &pbFundCollect.CreateFundCollectResponse{
 		FundCollectId: fund_collect.FundCollectID.String(),
 		PostId:        fund_collect.PostID.String(),
-		UserId:        fund_collect.UserID.String(),
+		UserId:        fund_collect.UserID,
 		UserName:      fund_collect.UserName,
 		Amount:        float32(fund_collect.Amount),
 		TransactionId: fund_collect.TransactionID,
@@ -78,7 +74,7 @@ func (s *FundCollectServer) GetFundCollectByPostID(ctx context.Context, req *pbF
 		fund_collect_responses = append(fund_collect_responses, &pbFundCollect.FundCollectResponse{
 			FundCollectId: fund_collect.FundCollectID.String(),
 			PostId:        fund_collect.PostID.String(),
-			UserId:        fund_collect.UserID.String(),
+			UserId:        fund_collect.UserID,
 			UserName:      fund_collect.UserName,
 			Amount:        float32(fund_collect.Amount),
 			TransactionId: fund_collect.TransactionID,

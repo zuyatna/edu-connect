@@ -4,13 +4,15 @@ import (
 	"context"
 	"time"
 
+	"institution-service/model"
+
 	"github.com/google/uuid"
-	"github.com/zuyatna/edu-connect/institution-service/model"
 	"gorm.io/gorm"
 )
 
 type IPostRepository interface {
 	CreatePost(ctx context.Context, post *model.Post) (*model.Post, error)
+	GetAllPost(ctx context.Context) ([]model.Post, error)
 	GetPostByID(ctx context.Context, post_id uuid.UUID) (*model.Post, error)
 	GetAllPostByInstitutionID(ctx context.Context, institution_id uuid.UUID) ([]model.Post, error)
 	UpdatePost(ctx context.Context, post *model.Post) (*model.Post, error)
@@ -34,6 +36,17 @@ func (r *PostRepository) CreatePost(ctx context.Context, post *model.Post) (*mod
 	}
 
 	return post, nil
+}
+
+func (r *PostRepository) GetAllPost(ctx context.Context) ([]model.Post, error) {
+	var posts []model.Post
+
+	err := r.db.Where("deleted_at IS NULL OR deleted_at = ?", "0001-01-01 00:00:00").Find(&posts).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return posts, nil
 }
 
 func (r *PostRepository) GetPostByID(ctx context.Context, post_id uuid.UUID) (*model.Post, error) {
@@ -72,9 +85,6 @@ func (r *PostRepository) UpdatePost(ctx context.Context, post *model.Post) (*mod
 	}
 	if !post.DateEnd.IsZero() {
 		updates["date_end"] = post.DateEnd
-	}
-	if post.FundTarget > 0 {
-		updates["fund_target"] = post.FundTarget
 	}
 
 	err := r.db.Model(&post).Where("post_id = ? AND (deleted_at IS NULL OR deleted_at = ?)",

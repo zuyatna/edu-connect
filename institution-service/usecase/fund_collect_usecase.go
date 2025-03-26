@@ -5,13 +5,13 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/zuyatna/edu-connect/institution-service/model"
-	"github.com/zuyatna/edu-connect/institution-service/repository"
+	"institution-service/model"
+	"institution-service/repository"
 )
 
 type IFundCollectUsecase interface {
-	CreateFundCollect(ctx context.Context, fund_collect *model.FundCollect) (*model.FundCollect, error)
-	GetFundCollectByPostID(ctx context.Context, post_id string) ([]model.FundCollect, error)
+	CreateFundCollect(ctx context.Context, fundCollect *model.FundCollect) (*model.FundCollect, error)
+	GetFundCollectByPostID(ctx context.Context, postID string) ([]model.FundCollect, error)
 }
 
 type FundCollectUsecase struct {
@@ -24,19 +24,19 @@ func NewFundCollectUsecase(fundCollectRepository repository.IFundCollectReposito
 	}
 }
 
-func (u *FundCollectUsecase) CreateFundCollect(ctx context.Context, fund_collect *model.FundCollect) (*model.FundCollect, error) {
+func (u *FundCollectUsecase) CreateFundCollect(ctx context.Context, fundCollect *model.FundCollect) (*model.FundCollect, error) {
 	var e []string
 
-	if fund_collect.PostID.String() == "00000000-0000-0000-0000-000000000000" {
+	if fundCollect.PostID.String() == "00000000-0000-0000-0000-000000000000" {
 		e = append(e, "Post ID is required")
 	}
-	if fund_collect.UserID.String() == "00000000-0000-0000-0000-000000000000" {
+	if fundCollect.UserID == "00000000-0000-0000-0000-000000000000" {
 		e = append(e, "User ID is required")
 	}
-	if fund_collect.UserName == "" {
+	if fundCollect.UserName == "" {
 		e = append(e, "User Name is required")
 	}
-	if fund_collect.Amount <= 0 {
+	if fundCollect.Amount <= 0 {
 		e = append(e, "Amount must be greater than 0")
 	}
 
@@ -44,9 +44,9 @@ func (u *FundCollectUsecase) CreateFundCollect(ctx context.Context, fund_collect
 		return nil, errors.New(strings.Join(e, ", "))
 	}
 
-	return u.fundCollectRepository.CreateFundCollect(ctx, fund_collect)
+	return u.fundCollectRepository.CreateFundCollect(ctx, fundCollect)
 }
 
-func (u *FundCollectUsecase) GetFundCollectByPostID(ctx context.Context, post_id string) ([]model.FundCollect, error) {
-	return u.fundCollectRepository.GetFundCollectByPostID(ctx, post_id)
+func (u *FundCollectUsecase) GetFundCollectByPostID(ctx context.Context, postID string) ([]model.FundCollect, error) {
+	return u.fundCollectRepository.GetFundCollectByPostID(ctx, postID)
 }

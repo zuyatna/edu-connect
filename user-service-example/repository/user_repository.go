@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/zuyatna/edu-connect/user-service/model"
+	"user-service-example/model"
 	"gorm.io/gorm"
 )
 

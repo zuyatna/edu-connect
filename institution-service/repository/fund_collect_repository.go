@@ -3,13 +3,13 @@ package repository
 import (
 	"context"
 
-	"github.com/zuyatna/edu-connect/institution-service/model"
+	"institution-service/model"
 	"gorm.io/gorm"
 )
 
 type IFundCollectRepository interface {
-	CreateFundCollect(ctx context.Context, fund_collect *model.FundCollect) (*model.FundCollect, error)
-	GetFundCollectByPostID(ctx context.Context, post_id string) ([]model.FundCollect, error)
+	CreateFundCollect(ctx context.Context, fundCollect *model.FundCollect) (*model.FundCollect, error)
+	GetFundCollectByPostID(ctx context.Context, postID string) ([]model.FundCollect, error)
 }
 
 type FundCollectRepository struct {

@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/zuyatna/edu-connect/institution-service/model"
+	"institution-service/model"
 )
 
 type IInstitutionUsecase interface {

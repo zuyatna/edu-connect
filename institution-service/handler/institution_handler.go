@@ -3,12 +3,13 @@ package handler
 import (
 	"context"
 
+	"institution-service/middlewares"
+	"institution-service/model"
+	pb "institution-service/pb/institution"
+	"institution-service/usecase"
+	"institution-service/utils"
+
 	"github.com/google/uuid"
-	"github.com/zuyatna/edu-connect/institution-service/middlewares"
-	"github.com/zuyatna/edu-connect/institution-service/model"
-	pb "github.com/zuyatna/edu-connect/institution-service/pb/institution"
-	"github.com/zuyatna/edu-connect/institution-service/usecase"
-	"github.com/zuyatna/edu-connect/institution-service/utils"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -85,11 +86,7 @@ func (s *InstitutionServer) GetInstitutionByID(ctx context.Context, req *pb.GetI
 		return nil, status.Errorf(codes.Internal, "failed to get authenticated institution ID from context")
 	}
 
-	if authenticatedInstitutionID != req.InstitutionId {
-		return nil, status.Errorf(codes.PermissionDenied, "unauthorized access")
-	}
-
-	institutionID, err := uuid.Parse(req.InstitutionId)
+	institutionID, err := uuid.Parse(authenticatedInstitutionID)
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid institution ID format: %v", err)
 	}
@@ -103,6 +100,9 @@ func (s *InstitutionServer) GetInstitutionByID(ctx context.Context, req *pb.GetI
 		InstitutionId: institution.InstitutionID.String(),
 		Name:          institution.Name,
 		Email:         institution.Email,
+		Address:       institution.Address,
+		Phone:         institution.Phone,
+		Website:       institution.Website,
 	}, nil
 }
 
