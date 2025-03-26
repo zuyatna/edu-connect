@@ -212,19 +212,27 @@ func (s *PostServer) UpdatePost(ctx context.Context, req *pb.UpdatePostRequest) 
 
 	var dateStart, dateEnd time.Time
 
-	dateStart, err = time.Parse(time.RFC3339, req.DateStart)
-	if err != nil {
-		dateStart, err = time.Parse("2006-01-02", req.DateStart)
+	if req.DateStart == "" {
+		dateStart = getPost.DateStart
+	} else {
+		dateStart, err = time.Parse(time.RFC3339, req.DateStart)
 		if err != nil {
-			return nil, status.Errorf(codes.InvalidArgument, "invalid date_start format, expected YYYY-MM-DD or RFC3339: %v", err)
+			dateStart, err = time.Parse("2006-01-02", req.DateStart)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "invalid date_start format, expected YYYY-MM-DD or RFC3339: %v", err)
+			}
 		}
 	}
 
-	dateEnd, err = time.Parse(time.RFC3339, req.DateEnd)
-	if err != nil {
-		dateEnd, err = time.Parse("2006-01-02", req.DateEnd)
+	if req.DateEnd == "" {
+		dateEnd = getPost.DateEnd
+	} else {
+		dateEnd, err = time.Parse(time.RFC3339, req.DateEnd)
 		if err != nil {
-			return nil, status.Errorf(codes.InvalidArgument, "invalid date_end format, expected YYYY-MM-DD or RFC3339: %v", err)
+			dateEnd, err = time.Parse("2006-01-02", req.DateEnd)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "invalid date_end format, expected YYYY-MM-DD or RFC3339: %v", err)
+			}
 		}
 	}
 
