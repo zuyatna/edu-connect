@@ -3,12 +3,12 @@ package handler
 import (
 	"context"
 
+	"user-service-example/middlewares"
+	"user-service-example/model"
+	pb "user-service-example/pb/user"
+	"user-service-example/usecase"
+	"user-service-example/utils"
 	"github.com/google/uuid"
-	"github.com/zuyatna/edu-connect/user-service/middlewares"
-	"github.com/zuyatna/edu-connect/user-service/model"
-	pb "github.com/zuyatna/edu-connect/user-service/pb/user"
-	"github.com/zuyatna/edu-connect/user-service/usecase"
-	"github.com/zuyatna/edu-connect/user-service/utils"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

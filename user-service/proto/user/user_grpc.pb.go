@@ -92,6 +92,7 @@ type UnimplementedUserServiceServer struct{}
 func (UnimplementedUserServiceServer) GetUserByToken(context.Context, *emptypb.Empty) (*GetUserByTokenResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUserByToken not implemented")
 }
+
 func (UnimplementedUserServiceServer) GetUserById(context.Context, *GetUserByIdRequest) (*GetUserByIdResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUserById not implemented")
 }

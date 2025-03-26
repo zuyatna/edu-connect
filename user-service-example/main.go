@@ -9,18 +9,18 @@ import (
 	"os/signal"
 	"syscall"
 
+	"user-service-example/database"
+	"user-service-example/handler"
+	"user-service-example/middlewares"
+	"user-service-example/model"
+	pb "user-service-example/pb/user"
+	"user-service-example/repository"
+	"user-service-example/routes"
+	"user-service-example/usecase"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
 	"github.com/sirupsen/logrus"
-	"github.com/zuyatna/edu-connect/user-service/database"
-	"github.com/zuyatna/edu-connect/user-service/handler"
-	"github.com/zuyatna/edu-connect/user-service/middlewares"
-	"github.com/zuyatna/edu-connect/user-service/model"
-	pb "github.com/zuyatna/edu-connect/user-service/pb/user"
-	"github.com/zuyatna/edu-connect/user-service/repository"
-	"github.com/zuyatna/edu-connect/user-service/routes"
-	"github.com/zuyatna/edu-connect/user-service/usecase"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"gorm.io/driver/postgres"
@@ -82,9 +82,18 @@ func main() {
 }
 
 func InitHTTPServer(errChan chan error, port, grpcEndpoint, grpcPort string) {
-	conn, err := grpc.NewClient(grpcEndpoint+":"+grpcPort,
-		grpc.WithInsecure(),
-	)
+	var opts []grpc.DialOption
+
+	if os.Getenv("ENV") == "production" {
+		tlsConfig := &tls.Config{
+			InsecureSkipVerify: true,
+		}
+		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)))
+	} else {
+		opts = append(opts, grpc.WithInsecure())
+	}
+
+	conn, err := grpc.Dial(grpcEndpoint+":"+grpcPort, opts...)
 	if err != nil {
 		panic(err)
 	}
@@ -109,8 +118,8 @@ func InitHTTPServer(errChan chan error, port, grpcEndpoint, grpcPort string) {
 	errChan <- e.Start(":" + port)
 }
 
-func InitGRPCServer(db *gorm.DB, errChan chan error, grcpEndpoint, grpcPort string) {
-	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%s", grcpEndpoint, grpcPort))
+func InitGRPCServer(db *gorm.DB, errChan chan error, grpcEndpoint, grpcPort string) {
+	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%s", grpcEndpoint, grpcPort))
 	if err != nil {
 		panic(err)
 	}
@@ -131,7 +140,7 @@ func InitGRPCServer(db *gorm.DB, errChan chan error, grcpEndpoint, grpcPort stri
 
 	pb.RegisterUserServiceServer(grpcServer, userHandler)
 
-	log.Info("Starting gRPC Server at", grcpEndpoint, ":", grpcPort)
+	log.Info("Starting gRPC Server at", grpcEndpoint, ":", grpcPort)
 	if err := grpcServer.Serve(listener); err != nil {
 		errChan <- err
 	}

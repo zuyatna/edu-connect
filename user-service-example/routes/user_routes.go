@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/zuyatna/edu-connect/user-service/httputil"
-	pb "github.com/zuyatna/edu-connect/user-service/pb/user"
+	"user-service-example/httputil"
+	pb "user-service-example/pb/user"
 	"google.golang.org/grpc/metadata"
 )
 

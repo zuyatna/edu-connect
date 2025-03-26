@@ -12,15 +12,17 @@ message CreateTransactionRequest {
     string post_id = 1;
     float amount = 2;
     string account_number = 3;
-    string account_name = 4; 
-    bool hide_name = 5;
+    string account_name = 4;
 }
 
 message CreateTransactionResponse {
     string transaction_id = 1;
     string user_id = 2;
     string payment_id = 3;
-    float amount = 4;
-    string account_number = 5;
-    string account_name = 6;
+    string user_email = 4;
+    float amount = 5;
+    string account_number = 6;
+    string account_name = 7;
+    string payment_url = 8;
+    string status = 9;
 }

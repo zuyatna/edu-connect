@@ -6,11 +6,12 @@ option go_package = "pb/post";
 
 service PostService {
     rpc CreatePost(CreatePostRequest) returns (PostResponse) {}
+    rpc GetAllPost(GetAllPostRequest) returns (GetAllPostResponse) {}
     rpc GetPostByID(GetPostByIDRequest) returns (PostResponse) {}
     rpc GetAllPostByInstitutionID(GetAllPostByInstitutionIDRequest) returns (GetAllPostByInstitutionIDResponse) {}
     rpc UpdatePost(UpdatePostRequest) returns (PostResponse) {}
-    rpc AddPostFundAchieved(AddPostFundAchievedRequest) returns (AddPostFundAchievedResponse) {}
     rpc DeletePost(DeletePostRequest) returns (DeletePostResponse) {}
+    rpc AddPostFundAchieved(AddPostFundAchievedRequest) returns (AddPostFundAchievedResponse) {}
 }
 
 message CreatePostRequest {
@@ -19,6 +20,10 @@ message CreatePostRequest {
     string date_start = 3;
     string date_end = 4;
     float fund_target = 5;
+}
+
+message GetAllPostRequest {
+
 }
 
 message GetPostByIDRequest {
@@ -38,11 +43,6 @@ message UpdatePostRequest {
     float fund_target = 6;
 }
 
-message AddPostFundAchievedRequest {
-    string post_id = 1;
-    float amount = 2;
-}
-
 message DeletePostRequest {
     string post_id = 1;
 }
@@ -57,15 +57,24 @@ message PostResponse {
     float func_achieved = 7;
 }
 
+message GetAllPostResponse {
+    repeated PostResponse posts = 1;
+}
+
 message GetAllPostByInstitutionIDResponse {
     repeated PostResponse posts = 1;
+}
+
+message DeletePostResponse {
+    string message = 1;
+}
+
+message AddPostFundAchievedRequest {
+    string post_id = 1;
+    float amount = 2;
 }
 
 message AddPostFundAchievedResponse {
     string post_id = 1;
     float func_achieved = 2;
-}
-
-message DeletePostResponse {
-    string message = 1;
 }

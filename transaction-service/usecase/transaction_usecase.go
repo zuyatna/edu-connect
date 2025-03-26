@@ -5,11 +5,20 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/zuyatna/edu-connect/transaction-service/model"
+	"transaction-service/model"
+
+	"github.com/google/uuid"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type ITransactionUsecase interface {
 	CreateTransaction(ctx context.Context, transaction *model.Transaction) (*model.Transaction, error)
+	CreateFundCollect(ctx context.Context, fundCollect *model.FundCollect) (*model.FundCollect, error)
+	GetTransactionByID(ctx context.Context, transactionID primitive.ObjectID) (*model.Transaction, error)
+	GetPostByID(ctx context.Context, postID uuid.UUID) (*model.Post, error)
+	GetUserByEmail(ctx context.Context, email string) (*model.User, error)
+	UpdateTransaction(ctx context.Context, transaction *model.Transaction) (*model.Transaction, error)
+	AddPostFundAchieved(ctx context.Context, postID uuid.UUID, amount float64) (*model.Post, error)
 }
 
 type TransactionUsecase struct {
@@ -43,4 +52,28 @@ func (u *TransactionUsecase) CreateTransaction(ctx context.Context, transaction 
 	}
 
 	return u.transactionRepository.CreateTransaction(ctx, transaction)
+}
+
+func (u *TransactionUsecase) CreateFundCollect(ctx context.Context, fundCollect *model.FundCollect) (*model.FundCollect, error) {
+	return u.transactionRepository.CreateFundCollect(ctx, fundCollect)
+}
+
+func (u *TransactionUsecase) GetTransactionByID(ctx context.Context, transactionID primitive.ObjectID) (*model.Transaction, error) {
+	return u.transactionRepository.GetTransactionByID(ctx, transactionID)
+}
+
+func (u *TransactionUsecase) GetPostByID(ctx context.Context, postID uuid.UUID) (*model.Post, error) {
+	return u.transactionRepository.GetPostByID(ctx, postID)
+}
+
+func (u *TransactionUsecase) GetUserByEmail(ctx context.Context, email string) (*model.User, error) {
+	return u.transactionRepository.GetUserByEmail(ctx, email)
+}
+
+func (u *TransactionUsecase) UpdateTransaction(ctx context.Context, transaction *model.Transaction) (*model.Transaction, error) {
+	return u.transactionRepository.UpdateTransaction(ctx, transaction)
+}
+
+func (u *TransactionUsecase) AddPostFundAchieved(ctx context.Context, postID uuid.UUID, amount float64) (*model.Post, error) {
+	return u.transactionRepository.AddPostFundAchieved(ctx, postID, amount)
 }
