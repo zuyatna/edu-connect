@@ -1,17 +1,16 @@
 package handler
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 
-	"transaction-service/middlewares"
+	"transaction-service/model"
 	pbFuncCollect "transaction-service/pb/fund_collect"
 	pbUser "transaction-service/pb/user"
 	"transaction-service/usecase"
 
+	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"google.golang.org/grpc/metadata"
 )
@@ -41,20 +40,14 @@ func NewPaymentCallbackHandler(
 	}
 }
 
-func (h *PaymentCallbackHandler) HandleCallback(w http.ResponseWriter, r *http.Request) {
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+func (h *PaymentCallbackHandler) HandleSuccessRedirect(w http.ResponseWriter, r *http.Request) {
+	transactionID := r.URL.Query().Get("external_id")
+	if transactionID == "" {
+		http.Error(w, "Missing transaction ID", http.StatusBadRequest)
 		return
 	}
 
-	var payload XenditCallbackPayload
-	if err := json.Unmarshal(body, &payload); err != nil {
-		http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
-		return
-	}
-
-	objectID, err := primitive.ObjectIDFromHex(payload.TransactionID)
+	objectID, err := primitive.ObjectIDFromHex(transactionID)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Invalid transaction ID format: %v", err), http.StatusBadRequest)
 		return
@@ -66,53 +59,50 @@ func (h *PaymentCallbackHandler) HandleCallback(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	transaction.PaymentStatus = payload.Status
-	transaction.PaymentID = payload.PaymentID
+	transaction.PaymentStatus = "PAID"
 
-	if payload.Status == "PAID" {
-		log.Printf("Updating fund collection for transaction %s", transaction.TransactionID)
+	log.Printf("Processing successful payment for transaction %s", transaction.TransactionID)
 
-		outCtx := r.Context()
+	outCtx := r.Context()
 
-		token := r.Header.Get("Authorization")
-		if token == "" {
-			token = "Bearer your-service-token-here"
-		}
+	token := r.Header.Get("Authorization")
+	if token == "" {
+		token = "Bearer your-service-token-here"
+	}
 
-		md := metadata.Pairs("authorization", token)
-		authCtx := metadata.NewOutgoingContext(outCtx, md)
+	md := metadata.Pairs("authorization", token)
+	authCtx := metadata.NewOutgoingContext(outCtx, md)
 
-		// This is commented out because the user service is not yet implemented
-		// userResp, err := h.userClient.GetUserByID(authCtx, &pbUser.GetUserByIDRequest{
-		// 	Id: transaction.UserID,
-		// })
-		// if err != nil {
-		// 	log.Printf("Failed to get user: %v", err)
-		// }
-		// userName := userResp.Name
+	var userName string
+	if email := transaction.UserEmail; email != "" {
+		userName = email
+	} else {
+		userName = "Anonymous User"
+		log.Printf("Warning: User email not found for transaction %s", transaction.TransactionID)
+	}
 
-		var userName string
-		if email := authCtx.Value(middlewares.EmailKey); email != nil {
-			userName = email.(string)
-		} else {
-			userName = "Anonymous User"
-			log.Printf("Warning: User email not found in context for transaction %s", transaction.TransactionID)
-		}
+	postUUID, err := uuid.Parse(transaction.PostID)
+	if err != nil {
+		log.Printf("Failed to parse PostID as UUID: %v", err)
+		http.Error(w, fmt.Sprintf("Invalid PostID format: %v", err), http.StatusInternalServerError)
+		return
+	}
 
-		_, err = h.fundCollectClient.CreateFundCollect(authCtx, &pbFuncCollect.CreateFundCollectRequest{
-			PostId:        transaction.PostID,
-			UserId:        "00000000-0000-0000-0000-000000000000",
-			UserName:      userName,
-			Amount:        float32(transaction.Amount),
-			TransactionId: transaction.TransactionID.Hex(),
-		})
-		if err != nil {
-			log.Printf("Failed to create fund collect: %v", err)
-		}
-	} else if payload.Status == "EXPIRED" {
-		log.Printf("Payment for transaction %s has expired", transaction.TransactionID)
-	} else if payload.Status == "FAILED" {
-		log.Printf("Payment for transaction %s has failed", transaction.TransactionID)
+	_, err = h.transactionUsecase.CreateFundCollect(authCtx, &model.FundCollect{
+		PostID:        postUUID,
+		UserID:        transaction.UserID,
+		UserName:      userName,
+		Amount:        float64(transaction.Amount),
+		TransactionID: transaction.TransactionID.Hex(),
+	})
+	if err != nil {
+		log.Printf("Failed to create fund collect: %v", err)
+	}
+
+	_, err = h.transactionUsecase.AddPostFundAchieved(r.Context(), postUUID, transaction.Amount)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to update post fund achieved: %v", err), http.StatusInternalServerError)
+		return
 	}
 
 	_, err = h.transactionUsecase.UpdateTransaction(r.Context(), transaction)
@@ -121,7 +111,7 @@ func (h *PaymentCallbackHandler) HandleCallback(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "text/html")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"status": "success"})
+	fmt.Fprintf(w, "<html><body><h1>Payment Successful</h1><p>Thank you for your contribution!</p></body></html>")
 }

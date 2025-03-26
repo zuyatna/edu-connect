@@ -1,0 +1,88 @@
+definitions:
+  httputil.HTTPError:
+    properties:
+      message:
+        type: string
+    type: object
+  model.TransactionRequest:
+    properties:
+      account_name:
+        type: string
+      account_number:
+        type: string
+      amount:
+        type: number
+      post_id:
+        type: string
+    type: object
+  model.TransactionResponse:
+    properties:
+      account_name:
+        type: string
+      account_number:
+        type: string
+      amount:
+        type: number
+      payment_id:
+        type: string
+      payment_status:
+        type: string
+      payment_url:
+        type: string
+      post_id:
+        type: string
+      transaction_id:
+        type: string
+      user_email:
+        type: string
+      user_id:
+        type: string
+    type: object
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+paths:
+  /v1/transaction:
+    post:
+      consumes:
+      - application/json
+      description: Create transaction with post id, amount, etc.
+      parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Transaction created details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.TransactionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Transaction created successfully
+          schema:
+            $ref: '#/definitions/model.TransactionResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+      security:
+      - BearerAuth: []
+      summary: Create a new Transaction.
+      tags:
+      - Transaction
+swagger: "2.0"

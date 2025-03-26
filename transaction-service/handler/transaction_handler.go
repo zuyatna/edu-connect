@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"transaction-service/client"
 	"transaction-service/middlewares"
@@ -12,6 +13,7 @@ import (
 	pbUser "transaction-service/pb/user"
 	"transaction-service/usecase"
 
+	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -58,36 +60,16 @@ func (s *TransactionServer) CreateTransaction(ctx context.Context, req *pbTransa
 		return nil, status.Errorf(codes.Internal, "failed to get authenticated user email from context")
 	}
 
-	var authenticatedUserID string
+	getUser, err := s.transactionUsecase.GetUserByEmail(ctx, email)
+	if err != nil {
+		log.Printf("Failed to get user by email: %v", err)
+	}
+
+	authenticatedUserID := getUser.ID
 
 	if userID, userIDOk := ctx.Value(middlewares.UserIDKey).(string); userIDOk && userID != "" {
 		authenticatedUserID = "00000000-0000-0000-0000-000000000000" // userID
-	} else {
-		// Look up user ID from user service using email
-		// userResp, err := s.userClient.GetUserByID(ctx, &pbUser.GetUserByIDRequest{
-		// 	Email: email,
-		// })
-		// if err != nil {
-		// 	return nil, status.Errorf(codes.Internal, "failed to get user ID: %v", err)
-		// }
-		// authenticatedUserID = userResp.Id
-
-		authenticatedUserID = "00000000-0000-0000-0000-000000000000"
 	}
-
-	// Get user details from user service
-	// This is commented out because the user service is not yet implemented
-	// outCtx := ctx
-	// if authHeaders, exists := md["authorization"]; exists && len(authHeaders) > 0 {
-	// 	outCtx = metadata.AppendToOutgoingContext(ctx, "authorization", authHeaders[0])
-	// }
-
-	// userResp, err := s.userClient.GetUserByID(outCtx, &pbUser.GetUserByIDRequest{
-	// 	Id: authenticatedUserID,
-	// })
-	// if err != nil {
-	// 	return nil, status.Errorf(codes.Internal, "failed to get user: %v", err)
-	// }
 
 	transaction_model := &model.Transaction{
 		UserID:        authenticatedUserID,
@@ -105,15 +87,24 @@ func (s *TransactionServer) CreateTransaction(ctx context.Context, req *pbTransa
 	}
 
 	transactionIDStr := transaction.TransactionID.Hex()
-	
+	postID, err := uuid.Parse(req.PostId)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid post ID format: %v", err)
+	}
+
+	post, err := s.transactionUsecase.GetPostByID(ctx, postID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get post: %v", err)
+	}
+
 	invoiceReq := client.CreateInvoiceRequest{
 		ExternalID:         transactionIDStr,
 		Amount:             transaction.Amount,
 		PayerEmail:         email,
-		Description:        fmt.Sprintf("Fund contribution for post %s", req.PostId),
+		Description:        fmt.Sprintf("Fund contribution for %s", post.Title),
 		CustomerName:       "anonymous",
-		InvoiceDuration:    86400,       // 24 hours
-		SuccessRedirectURL: "https://edu-connect.example.com/payment/success",
+		InvoiceDuration:    86400, // 24 hours
+		SuccessRedirectURL: fmt.Sprintf("https://transaction-service-1011483964797.asia-southeast2.run.app/payment/success?external_id=%s", transactionIDStr),
 		FailureRedirectURL: "https://edu-connect.example.com/payment/failed",
 		CallbackURL:        "https://edu-connect.example.com/api/payment/callback",
 	}

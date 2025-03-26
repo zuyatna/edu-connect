@@ -23,9 +23,22 @@ func NewTransactionHTTPHandler(transactionClient pb.TransactionServiceClient) *T
 }
 
 func (h *TransactionHTTPHandler) Routes(e *echo.Echo) {
-	e.POST("/transaction", h.authMiddleware2(h.CreateTransaction))
+	e.POST("/v1/transaction", h.authMiddleware2(h.CreateTransaction))
 }
 
+// CreateTransaction godoc
+// @Summary      Create a new Transaction.
+// @Description  Create transaction with post id, amount, etc.
+// @Tags         Transaction
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        Authorization  header    string  true  "Bearer token"
+// @Param        id            path      string    true  "User ID"
+// @Param        request body model.TransactionRequest true "Transaction created details"
+// @Success      200 {object} model.TransactionResponse "Transaction created successfully"
+// @Failure      500 {object} httputil.HTTPError "Internal server error"
+// @Router       /v1/transaction [post]
 func (h *TransactionHTTPHandler) CreateTransaction(c echo.Context) error {
 	req := new(pb.CreateTransactionRequest)
 	if err := c.Bind(req); err != nil {

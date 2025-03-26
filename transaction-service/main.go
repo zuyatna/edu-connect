@@ -11,6 +11,7 @@ import (
 	"syscall"
 
 	"transaction-service/database"
+	"transaction-service/docs"
 	"transaction-service/handler"
 	"transaction-service/middlewares"
 	pbFuncCollect "transaction-service/pb/fund_collect"
@@ -24,12 +25,21 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
 	"github.com/sirupsen/logrus"
+	echoSwagger "github.com/swaggo/echo-swagger"
 	"go.mongodb.org/mongo-driver/mongo"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
+// @contact.name   API Support
+// @contact.url    http://www.swagger.io/support
+// @contact.email  support@swagger.io
+
+// @license.name  Apache 2.0
+// @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
 func main() {
 	logger := logrus.New()
 	logger.SetFormatter(&logrus.TextFormatter{
@@ -38,13 +48,25 @@ func main() {
 	})
 
 	ctx := context.Background()
-	db := database.GetMongoDatabase()
-
+	dbMongo := database.GetMongoDatabase()
 	defer func() {
 		if err := database.CloseMongoConnection(ctx); err != nil {
 			logger.Fatalf("Failed to close MongoDB connection: %v", err)
 		}
 	}()
+
+	initDB := database.GetDB()
+	if initDB == nil {
+		fmt.Println("Failed to initialize database")
+		return
+	}
+	fmt.Println("Application started successfully")
+	defer database.CloseDB()
+
+	dbPostgre, err := gorm.Open(postgres.New(postgres.Config{Conn: initDB}), &gorm.Config{})
+	if err != nil {
+		panic("failed to connect to database!")
+	}
 
 	sigChan := make(chan os.Signal, 1)
 	errChan := make(chan error, 1)
@@ -79,13 +101,13 @@ func main() {
 		grpcPort = "50053"
 	}
 
-	transactionRepo := repository.NewTransactionRepository(db)
+	transactionRepo := repository.NewTransactionRepository(dbMongo, dbPostgre)
 	transactionUsecase := usecase.NewTransactionUsecase(transactionRepo)
 
 	userConn, fundCollectConn := getServiceConnections()
 
 	go InitHTTPServer(errChan, port, grpcEndpoint, grpcPort, transactionUsecase, userConn, fundCollectConn)
-	go InitGRPCServer(db, errChan, grpcEndpoint, grpcPort, transactionUsecase, userConn, fundCollectConn)
+	go InitGRPCServer(dbMongo, errChan, grpcEndpoint, grpcPort, transactionUsecase, userConn, fundCollectConn)
 
 	<-quitChan
 	logger.Info("Shutting down...")
@@ -104,7 +126,6 @@ func getServiceConnections() (*grpc.ClientConn, *grpc.ClientConn) {
 		grpcUserPort = "50051"
 	}
 
-	// For Cloud Run, use TLS credentials
 	var creds credentials.TransportCredentials
 	if os.Getenv("ENV") == "production" {
 		creds = credentials.NewClientTLSFromCert(nil, "")
@@ -174,10 +195,18 @@ func InitHTTPServer(
 		return c.String(http.StatusOK, "OK")
 	})
 
+	docs.SwaggerInfo.Title = "EduConnect - Transaction Service API Contract"
+	docs.SwaggerInfo.Description = "This is a documentation EduConnect - Transaction Service API Contract."
+	docs.SwaggerInfo.Version = "1.0"
+	docs.SwaggerInfo.Host = "transaction-service-1011483964797.asia-southeast2.run.app"
+	docs.SwaggerInfo.BasePath = "/"
+	docs.SwaggerInfo.Schemes = []string{"https"}
+	e.GET("/swagger/*", echoSwagger.WrapHandler)
+
 	userClient := pbUser.NewUserServiceClient(userConn)
 	paymentCallbackHandler := handler.NewPaymentCallbackHandler(transactionUsecase, userClient, fundCollectClient)
-	e.POST("/api/payment/callback", func(c echo.Context) error {
-		paymentCallbackHandler.HandleCallback(c.Response().Writer, c.Request())
+	e.GET("/payment/success", func(c echo.Context) error {
+		paymentCallbackHandler.HandleSuccessRedirect(c.Response().Writer, c.Request())
 		return nil
 	})
 

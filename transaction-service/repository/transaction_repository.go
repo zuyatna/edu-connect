@@ -2,28 +2,42 @@ package repository
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"time"
 
 	"transaction-service/model"
 
+	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 type ITransactionRepository interface {
 	CreateTransaction(ctx context.Context, transaction *model.Transaction) (*model.Transaction, error)
+	CreateFundCollect(ctx context.Context, fundCollect *model.FundCollect) (*model.FundCollect, error)
 	GetTransactionByID(ctx context.Context, transactionID primitive.ObjectID) (*model.Transaction, error)
+	GetPostByID(ctx context.Context, postID uuid.UUID) (*model.Post, error)
+	GetUserByEmail(ctx context.Context, email string) (*model.User, error)
 	UpdateTransaction(ctx context.Context, transaction *model.Transaction) (*model.Transaction, error)
+	AddPostFundAchieved(ctx context.Context, postID uuid.UUID, amount float64) (*model.Post, error)
 }
 
 type TransactionRepository struct {
 	transactionCollection *mongo.Collection
+	gormClient            *gorm.DB
 }
 
-func NewTransactionRepository(db *mongo.Database) *TransactionRepository {
+func NewTransactionRepository(
+	mongos *mongo.Database,
+	gormClient *gorm.DB,
+) *TransactionRepository {
 	return &TransactionRepository{
-		transactionCollection: db.Collection("transactions"),
+		transactionCollection: mongos.Collection("transactions"),
+		gormClient:            gormClient,
 	}
 }
 
@@ -49,6 +63,14 @@ func (r *TransactionRepository) CreateTransaction(ctx context.Context, transacti
 	return transaction, nil
 }
 
+func (r *TransactionRepository) CreateFundCollect(ctx context.Context, fundCollect *model.FundCollect) (*model.FundCollect, error) {
+	if err := r.gormClient.Create(fundCollect).Error; err != nil {
+		return nil, err
+	}
+
+	return fundCollect, nil
+}
+
 func (r *TransactionRepository) GetTransactionByID(ctx context.Context, transactionID primitive.ObjectID) (*model.Transaction, error) {
 	var transaction model.Transaction
 
@@ -62,6 +84,37 @@ func (r *TransactionRepository) GetTransactionByID(ctx context.Context, transact
 	}
 
 	return &transaction, nil
+}
+
+func (r *TransactionRepository) GetPostByID(ctx context.Context, PostID uuid.UUID) (*model.Post, error) {
+	var post model.Post
+	if err := r.gormClient.Where("post_id = ?", PostID).First(&post).Error; err != nil {
+		return nil, err
+	}
+
+	return &post, nil
+}
+
+func (r *TransactionRepository) GetUserByEmail(ctx context.Context, email string) (*model.User, error) {
+	var user model.User
+
+	dsn := os.Getenv("POSTGRES_URI_EXTERNAL")
+	userDB, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to user database: %w", err)
+	}
+
+	sqlDB, err := userDB.DB()
+	if err != nil {
+		return nil, err
+	}
+	defer sqlDB.Close()
+
+	if err := userDB.Where("email = ?", email).First(&user).Error; err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }
 
 func (r *TransactionRepository) UpdateTransaction(ctx context.Context, transaction *model.Transaction) (*model.Transaction, error) {
@@ -84,4 +137,19 @@ func (r *TransactionRepository) UpdateTransaction(ctx context.Context, transacti
 	}
 
 	return transaction, nil
+}
+
+func (r *TransactionRepository) AddPostFundAchieved(ctx context.Context, postID uuid.UUID, amount float64) (*model.Post, error) {
+	var post model.Post
+	if err := r.gormClient.Where("post_id = ?", postID).First(&post).Error; err != nil {
+		return nil, err
+	}
+
+	post.FundAchieved += amount
+
+	if err := r.gormClient.Save(&post).Error; err != nil {
+		return nil, err
+	}
+
+	return &post, nil
 }
