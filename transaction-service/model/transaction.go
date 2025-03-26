@@ -30,6 +30,19 @@ type TransactionRequest struct {
 	AccountName   string  `json:"account_name"`
 }
 
+type TransactionResponse struct {
+	TransactionID string  `json:"transaction_id"`
+	UserID        string  `json:"user_id"`
+	PostID        string  `json:"post_id"`
+	UserEmail     string  `json:"user_email"`
+	PaymentID     string  `json:"payment_id"`
+	PaymentURL    string  `json:"payment_url"`
+	PaymentStatus string  `json:"payment_status"`
+	Amount        float64 `json:"amount"`
+	AccountNumber string  `json:"account_number"`
+	AccountName   string  `json:"account_name"`
+}
+
 type User struct {
 	ID    string `gorm:"primaryKey" json:"id"`
 	Name  string `gorm:"type:varchar(50);not null" json:"name"`
