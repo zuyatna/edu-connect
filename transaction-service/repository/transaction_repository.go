@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"transaction-service/model"
@@ -97,7 +98,7 @@ func (r *TransactionRepository) GetPostByID(ctx context.Context, PostID uuid.UUI
 func (r *TransactionRepository) GetUserByEmail(ctx context.Context, email string) (*model.User, error) {
 	var user model.User
 
-	dsn := "host=monorail.proxy.rlwy.net user=postgres password=ldxdXyxtKbbTWEmpXaWwTJAqranhJaqJ dbname=fp_userservice port=29595 sslmode=disable"
+	dsn := os.Getenv("POSTGRES_URI_EXTERNAL")
 	userDB, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to user database: %w", err)

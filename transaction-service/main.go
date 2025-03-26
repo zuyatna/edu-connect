@@ -118,7 +118,6 @@ func getServiceConnections() (*grpc.ClientConn, *grpc.ClientConn) {
 		grpcUserPort = "50051"
 	}
 
-	// For Cloud Run, use TLS credentials
 	var creds credentials.TransportCredentials
 	if os.Getenv("ENV") == "production" {
 		creds = credentials.NewClientTLSFromCert(nil, "")
