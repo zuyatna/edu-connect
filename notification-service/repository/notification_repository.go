@@ -38,25 +38,25 @@ func (r *notificationRepository) Create(notification *model.Notification) error 
 		return err
 	}
 	r.logger.WithFields(logrus.Fields{
-		"id":     notification.ID,
-		"email":  notification.Email,
-		"status": notification.Status,
+		"notification_id": notification.NotificationID,
+		"email":           notification.Email,
+		"status":          notification.Status,
 	}).Info("Notification created")
 	return nil
 }
 
 func (r *notificationRepository) MarkAsSent(id int) error {
 	tx := r.db.Begin()
-	if err := tx.Model(&model.Notification{}).Where("id = ?", id).Update("status", StatusSent).Error; err != nil {
+	if err := tx.Model(&model.Notification{}).Where("notification_id = ?", id).Update("status", StatusSent).Error; err != nil {
 		tx.Rollback()
 		r.logger.WithFields(logrus.Fields{
-			"id":    id,
-			"error": err.Error(),
+			"notification_id": id,
+			"error":           err.Error(),
 		}).Error("Failed to mark notification as sent")
 		return err
 	}
 	tx.Commit()
 
-	r.logger.WithField("id", id).Info("Notification marked as sent")
+	r.logger.WithField("notification_id", id).Info("Notification marked as sent")
 	return nil
 }

@@ -11,6 +11,7 @@ type IVerificationRepository interface {
 	CreateToken(email, token string, expiresAt time.Time) error
 	ValidateToken(token string) (*model.EmailVerification, error)
 	MarkTokenUsed(token string) error
+	GetActiveVerificationByEmail(email string) (*model.EmailVerification, error)
 }
 
 type verificationRepository struct {
@@ -45,4 +46,13 @@ func (r *verificationRepository) MarkTokenUsed(token string) error {
 	return r.db.Model(&model.EmailVerification{}).
 		Where("token = ?", token).
 		Update("used", true).Error
+}
+
+func (r *verificationRepository) GetActiveVerificationByEmail(email string) (*model.EmailVerification, error) {
+	var ev model.EmailVerification
+	err := r.db.Where("email = ? AND used = false AND expires_at > ?", email, time.Now()).First(&ev).Error
+	if err != nil {
+		return nil, err
+	}
+	return &ev, nil
 }

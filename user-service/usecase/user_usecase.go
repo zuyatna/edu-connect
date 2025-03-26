@@ -22,7 +22,6 @@ type IUserUseCase interface {
 	GetByEmail(email string) (*model.User, error)
 	UpdateBalance(email string, balance float64) error
 	GetByID(id uint) (*model.User, error)
-	GetAll() ([]model.User, error)
 	GetAllPaginated(page int, limit int) ([]model.User, int64, error)
 }
 
@@ -60,17 +59,6 @@ func (u *userUseCase) GetAllPaginated(page int, limit int) ([]model.User, int64,
 	}
 
 	return users, total, nil
-}
-
-func (u *userUseCase) GetAll() ([]model.User, error) {
-	users, err := u.userRepo.GetAll()
-	if err != nil {
-		logger.Error("GetAll failed: Internal server error")
-		return nil, customErr.ErrInternalServer
-	}
-
-	logger.Info("Users fetched successfully")
-	return users, nil
 }
 
 func (u *userUseCase) GetByID(id uint) (*model.User, error) {
