@@ -65,34 +65,11 @@ func (s *TransactionServer) CreateTransaction(ctx context.Context, req *pbTransa
 		log.Printf("Failed to get user by email: %v", err)
 	}
 
-	authenticatedUserID := fmt.Sprintf("%d", getUser.ID)
+	authenticatedUserID := getUser.ID
 
 	if userID, userIDOk := ctx.Value(middlewares.UserIDKey).(string); userIDOk && userID != "" {
 		authenticatedUserID = "00000000-0000-0000-0000-000000000000" // userID
-	} else {
-		// Look up user ID from user service using email
-		// userResp, err := s.userClient.GetUserByID(ctx, &pbUser.GetUserByIDRequest{
-		// 	Email: email,
-		// })
-		// if err != nil {
-		// 	return nil, status.Errorf(codes.Internal, "failed to get user ID: %v", err)
-		// }
-		// authenticatedUserID = userResp.Id
 	}
-
-	// Get user details from user service
-	// This is commented out because the user service is not yet implemented
-	// outCtx := ctx
-	// if authHeaders, exists := md["authorization"]; exists && len(authHeaders) > 0 {
-	// 	outCtx = metadata.AppendToOutgoingContext(ctx, "authorization", authHeaders[0])
-	// }
-
-	// userResp, err := s.userClient.GetUserByID(outCtx, &pbUser.GetUserByIDRequest{
-	// 	Id: authenticatedUserID,
-	// })
-	// if err != nil {
-	// 	return nil, status.Errorf(codes.Internal, "failed to get user: %v", err)
-	// }
 
 	transaction_model := &model.Transaction{
 		UserID:        authenticatedUserID,

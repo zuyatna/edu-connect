@@ -84,15 +84,6 @@ func (h *PaymentCallbackHandler) HandleCallback(w http.ResponseWriter, r *http.R
 		md := metadata.Pairs("authorization", token)
 		authCtx := metadata.NewOutgoingContext(outCtx, md)
 
-		// This is commented out because the user service is not yet implemented
-		// userResp, err := h.userClient.GetUserByID(authCtx, &pbUser.GetUserByIDRequest{
-		// 	Id: transaction.UserID,
-		// })
-		// if err != nil {
-		// 	log.Printf("Failed to get user: %v", err)
-		// }
-		// userName := userResp.Name
-
 		var userName string
 		if email := authCtx.Value(middlewares.EmailKey); email != nil {
 			userName = email.(string)
@@ -124,15 +115,6 @@ func (h *PaymentCallbackHandler) HandleCallback(w http.ResponseWriter, r *http.R
 			http.Error(w, fmt.Sprintf("Failed to update post fund achieved: %v", err), http.StatusInternalServerError)
 			return
 		}
-
-		// This is commented out because the fund collect service is not yet implemented
-		// _, err = h.fundCollectClient.CreateFundCollect(authCtx, &pbFuncCollect.CreateFundCollectRequest{
-		// 	PostId:        transaction.PostID,
-		// 	UserId:        "00000000-0000-0000-0000-000000000000",
-		// 	UserName:      userName,
-		// 	Amount:        float32(transaction.Amount),
-		// 	TransactionId: transaction.TransactionID.Hex(),
-		// })
 	} else if payload.Status == "EXPIRED" {
 		log.Printf("Payment for transaction %s has expired", transaction.TransactionID)
 	} else if payload.Status == "FAILED" {
