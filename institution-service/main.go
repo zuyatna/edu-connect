@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	"institution-service/database"
+	"institution-service/docs"
 	"institution-service/handler"
 	"institution-service/middlewares"
 	"institution-service/model"
@@ -24,6 +25,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
 	"github.com/sirupsen/logrus"
+	echoSwagger "github.com/swaggo/echo-swagger"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
@@ -31,6 +33,12 @@ import (
 	"gorm.io/gorm"
 )
 
+// @contact.name   API Support
+// @contact.url    http://www.swagger.io/support
+// @contact.email  support@swagger.io
+
+// @license.name  Apache 2.0
+// @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
 func main() {
 	logger := logrus.New()
 	logger.SetFormatter(&logrus.TextFormatter{
@@ -134,6 +142,14 @@ func InitHTTPServer(errChan chan error, port, grpcEndpoint, grpcPort string) {
 	e.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, "OK")
 	})
+
+	docs.SwaggerInfo.Title = "EduConnect - Institution Service API Contract"
+	docs.SwaggerInfo.Description = "This is a documentation EduConnect - Institution Service API Contract."
+	docs.SwaggerInfo.Version = "1.0"
+	docs.SwaggerInfo.Host = "institution-service-1011483964797.asia-southeast2.run.app"
+	docs.SwaggerInfo.BasePath = "/"
+	docs.SwaggerInfo.Schemes = []string{"https"}
+	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
 	insRoutes := routes.NewInstitutionHTTPHandler(insClient)
 	insRoutes.Routes(e)

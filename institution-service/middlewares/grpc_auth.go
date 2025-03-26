@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"institution-service/utils"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -21,6 +22,7 @@ var publicEndpoints = map[string]bool{
 	"/institution.InstitutionService/RegisterInstitution": true,
 	"/institution.InstitutionService/LoginInstitution":    true,
 	"/fund_collect.FundCollectService/CreateFundCollect":  true,
+	"/post.PostService/GetAllPost":                        true,
 }
 
 func SelectiveAuthInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {

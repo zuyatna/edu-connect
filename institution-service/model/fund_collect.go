@@ -10,7 +10,7 @@ import (
 type FundCollect struct {
 	FundCollectID uuid.UUID      `json:"fund_collect_id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 	PostID        uuid.UUID      `json:"post_id" gorm:"type:uuid; not null"`
-	UserID        uuid.UUID      `json:"user_id" gorm:"type:uuid; not null"`
+	UserID        string         `json:"user_id" gorm:"type:varchar(255); not null"`
 	UserName      string         `json:"user_name" gorm:"type:varchar(255); not null"`
 	Amount        float64        `json:"amount" gorm:"type:float; not null"`
 	TransactionID string         `json:"transaction_id" gorm:"type:varchar(255); not null"`
@@ -20,6 +20,15 @@ type FundCollect struct {
 }
 
 type FundCollectRequest struct {
+	PostID        string  `json:"post_id"`
+	UserID        string  `json:"user_id"`
+	UserName      string  `json:"user_name"`
+	Amount        float64 `json:"amount"`
+	TransactionID string  `json:"transaction_id"`
+}
+
+type FundCollectResponse struct {
+	FundCollectID string  `json:"fund_collect_id"`
 	PostID        string  `json:"post_id"`
 	UserID        string  `json:"user_id"`
 	UserName      string  `json:"user_name"`

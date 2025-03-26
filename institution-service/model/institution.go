@@ -25,6 +25,11 @@ func (u *Institution) CompareHashAndPassword(password string) error {
 	return bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
 }
 
+type InstitutionLoginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
 type InstitutionRequest struct {
 	Name     string `json:"name"`
 	Email    string `json:"email"`
@@ -45,4 +50,8 @@ type InstitutionResponse struct {
 
 type InstitutionToken struct {
 	Token string `json:"token"`
+}
+
+type InstitutionDeleteResponse struct {
+	Message string `json:"message"`
 }

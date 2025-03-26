@@ -1,0 +1,511 @@
+definitions:
+  httputil.HTTPError:
+    properties:
+      message:
+        type: string
+    type: object
+  model.FundCollectResponse:
+    properties:
+      amount:
+        type: number
+      fund_collect_id:
+        type: string
+      post_id:
+        type: string
+      transaction_id:
+        type: string
+      user_id:
+        type: string
+      user_name:
+        type: string
+    type: object
+  model.InstitutionDeleteResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  model.InstitutionLoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  model.InstitutionRequest:
+    properties:
+      address:
+        type: string
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+      phone:
+        type: string
+      website:
+        type: string
+    type: object
+  model.InstitutionResponse:
+    properties:
+      address:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      phone:
+        type: string
+      website:
+        type: string
+    type: object
+  model.InstitutionToken:
+    properties:
+      token:
+        type: string
+    type: object
+  model.PostDeleteResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  model.PostRequest:
+    properties:
+      body:
+        type: string
+      date_end:
+        type: string
+      date_start:
+        type: string
+      fund_target:
+        type: number
+      title:
+        type: string
+    type: object
+  model.PostResponse:
+    properties:
+      body:
+        type: string
+      date_end:
+        type: string
+      date_start:
+        type: string
+      fund_achieved:
+        type: number
+      fund_target:
+        type: number
+      post_id:
+        type: string
+      title:
+        type: string
+    type: object
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+paths:
+  /v1/fund-collect/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get a specific funding collection by Post ID with authorization.
+      parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Institution ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success get funding collection data
+          schema:
+            $ref: '#/definitions/model.FundCollectResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+        "404":
+          description: Funding collection not found
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+      security:
+      - BearerAuth: []
+      summary: Get funding collection by Post ID.
+      tags:
+      - FundCollect
+  /v1/institution:
+    get:
+      consumes:
+      - application/json
+      description: Get data institution with authorization.
+      parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success get institution data
+          schema:
+            $ref: '#/definitions/model.InstitutionResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+        "404":
+          description: Data not found
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+      security:
+      - BearerAuth: []
+      summary: Get Institution.
+      tags:
+      - Institution
+  /v1/institution/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an existing institution with authorization.
+      parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Institution ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success delete institution data
+          schema:
+            $ref: '#/definitions/model.InstitutionDeleteResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+      security:
+      - BearerAuth: []
+      summary: Delete Institution.
+      tags:
+      - Institution
+    put:
+      consumes:
+      - application/json
+      description: Update an existing institution with authorization.
+      parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Institution ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Updated institution data
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/model.InstitutionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success update institution data
+          schema:
+            $ref: '#/definitions/model.InstitutionResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+      security:
+      - BearerAuth: []
+      summary: Update Institution.
+      tags:
+      - Institution
+  /v1/institution/login:
+    post:
+      consumes:
+      - application/json
+      description: Login Institution with email and password.
+      parameters:
+      - description: Institution login
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.InstitutionLoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Institution login successfully
+          schema:
+            $ref: '#/definitions/model.InstitutionToken'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+      summary: Login Institution.
+      tags:
+      - Institution
+  /v1/institution/register:
+    post:
+      consumes:
+      - application/json
+      description: Register institution with name, email, etc. Email must be unique
+        and password will be hashed before saved to database.
+      parameters:
+      - description: Institution created details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.InstitutionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Institution created successfully
+          schema:
+            $ref: '#/definitions/model.InstitutionResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+      summary: Register a new Institution.
+      tags:
+      - Institution
+  /v1/post:
+    post:
+      consumes:
+      - application/json
+      description: Create post with title, body, etc.
+      parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Institution ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Post created details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.PostRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Post created successfully
+          schema:
+            $ref: '#/definitions/model.PostResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+      security:
+      - BearerAuth: []
+      summary: Create a new Post.
+      tags:
+      - Post
+  /v1/post/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an existing post with authorization.
+      parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Institution ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success delete post data
+          schema:
+            $ref: '#/definitions/model.PostDeleteResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+      security:
+      - BearerAuth: []
+      summary: Delete Post.
+      tags:
+      - Post
+    get:
+      consumes:
+      - application/json
+      description: Get a specific post by ID with authorization.
+      parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Institution ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success get post data
+          schema:
+            $ref: '#/definitions/model.PostResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+        "404":
+          description: Post not found
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+      security:
+      - BearerAuth: []
+      summary: Get Post by ID.
+      tags:
+      - Post
+    put:
+      consumes:
+      - application/json
+      description: Update an existing post with authorization.
+      parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Institution ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Updated post data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.PostRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success update post data
+          schema:
+            $ref: '#/definitions/model.PostResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+        "404":
+          description: Post not found
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+      security:
+      - BearerAuth: []
+      summary: Update Post.
+      tags:
+      - Post
+  /v1/post/institution/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get all post by Institution ID with authorization.
+      parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Institution ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success get post data
+          schema:
+            $ref: '#/definitions/model.PostResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+        "404":
+          description: Post not found
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+      security:
+      - BearerAuth: []
+      summary: Get all Post by Institution ID.
+      tags:
+      - Post
+  /v1/posts:
+    get:
+      consumes:
+      - application/json
+      description: Get all Post without authentication.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success get post data
+          schema:
+            $ref: '#/definitions/model.PostResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+        "404":
+          description: Post not found
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+      summary: Get all Post.
+      tags:
+      - Post
+swagger: "2.0"
