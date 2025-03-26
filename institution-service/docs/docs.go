@@ -327,39 +327,6 @@ const docTemplate = `{
             }
         },
         "/v1/post": {
-            "get": {
-                "description": "Get all Post without authentication.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Post"
-                ],
-                "summary": "Get all Post.",
-                "responses": {
-                    "200": {
-                        "description": "Success get post data",
-                        "schema": {
-                            "$ref": "#/definitions/model.PostResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/httputil.HTTPError"
-                        }
-                    },
-                    "404": {
-                        "description": "Post not found",
-                        "schema": {
-                            "$ref": "#/definitions/httputil.HTTPError"
-                        }
-                    }
-                }
-            },
             "post": {
                 "security": [
                     {
@@ -634,6 +601,41 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/posts": {
+            "get": {
+                "description": "Get all Post without authentication.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Post"
+                ],
+                "summary": "Get all Post.",
+                "responses": {
+                    "200": {
+                        "description": "Success get post data",
+                        "schema": {
+                            "$ref": "#/definitions/model.PostResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.HTTPError"
+                        }
+                    },
+                    "404": {
+                        "description": "Post not found",
                         "schema": {
                             "$ref": "#/definitions/httputil.HTTPError"
                         }

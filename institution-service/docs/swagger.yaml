@@ -308,28 +308,6 @@ paths:
       tags:
       - Institution
   /v1/post:
-    get:
-      consumes:
-      - application/json
-      description: Get all Post without authentication.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Success get post data
-          schema:
-            $ref: '#/definitions/model.PostResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/httputil.HTTPError'
-        "404":
-          description: Post not found
-          schema:
-            $ref: '#/definitions/httputil.HTTPError'
-      summary: Get all Post.
-      tags:
-      - Post
     post:
       consumes:
       - application/json
@@ -509,6 +487,29 @@ paths:
       security:
       - BearerAuth: []
       summary: Get all Post by Institution ID.
+      tags:
+      - Post
+  /v1/posts:
+    get:
+      consumes:
+      - application/json
+      description: Get all Post without authentication.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success get post data
+          schema:
+            $ref: '#/definitions/model.PostResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+        "404":
+          description: Post not found
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+      summary: Get all Post.
       tags:
       - Post
 swagger: "2.0"
