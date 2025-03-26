@@ -17,6 +17,7 @@ func Migration(db *gorm.DB) {
 	err := db.AutoMigrate(
 		&model.EmailVerification{},
 		&model.PasswordReset{},
+		&model.User{},
 	)
 
 	if err != nil {

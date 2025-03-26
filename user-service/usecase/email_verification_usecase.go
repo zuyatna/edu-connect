@@ -14,6 +14,7 @@ import (
 type IVerificationUseCase interface {
 	GenerateVerification(email string) error
 	VerifyToken(token string) error
+	ResendVerification(email string) error
 }
 
 type verificationUseCase struct {
@@ -76,5 +77,38 @@ func (v *verificationUseCase) VerifyToken(token string) error {
 	}
 
 	logger.WithField("email", data.Email).Info("User verified successfully")
+	return nil
+}
+
+func (v *verificationUseCase) ResendVerification(email string) error {
+	logger := logrus.WithField("email", email)
+
+	user, err := v.userRepo.GetByEmail(email)
+	if err != nil {
+		logger.Warn("Resend verification failed: Email not found")
+		return customErr.ErrLoginEmailNotFound
+	}
+
+	activeToken, err := v.verificationRepo.GetActiveVerificationByEmail(email)
+	if err == nil && activeToken != nil {
+		logger.Warn("Resend verification denied: Active token exists")
+		return customErr.ErrVerificationTokenStillValid
+	}
+
+	token := uuid.NewString()
+	expiresAt := time.Now().Add(15 * time.Minute)
+
+	err = v.verificationRepo.CreateToken(user.Email, token, expiresAt)
+	if err != nil {
+		logger.WithError(err).Error("Failed to create verification token")
+		return customErr.ErrInternalServer
+	}
+
+	err = v.emailPublisher.PublishVerificationToken(user.Email, token)
+	if err != nil {
+		logger.WithError(err).Error("Failed to publish verification email")
+	}
+
+	logger.Info("Verification token resent successfully")
 	return nil
 }

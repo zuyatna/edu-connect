@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	UserService_GetUserByToken_FullMethodName    = "/user.UserService/GetUserByToken"
+	UserService_GetUserById_FullMethodName       = "/user.UserService/GetUserById"
 	UserService_UpdateUserBalance_FullMethodName = "/user.UserService/UpdateUserBalance"
 )
 
@@ -29,6 +30,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type UserServiceClient interface {
 	GetUserByToken(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetUserByTokenResponse, error)
+	GetUserById(ctx context.Context, in *GetUserByIdRequest, opts ...grpc.CallOption) (*GetUserByIdResponse, error)
 	UpdateUserBalance(ctx context.Context, in *UpdateUserBalanceRequest, opts ...grpc.CallOption) (*UpdateUserBalanceResponse, error)
 }
 
@@ -50,6 +52,16 @@ func (c *userServiceClient) GetUserByToken(ctx context.Context, in *emptypb.Empt
 	return out, nil
 }
 
+func (c *userServiceClient) GetUserById(ctx context.Context, in *GetUserByIdRequest, opts ...grpc.CallOption) (*GetUserByIdResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetUserByIdResponse)
+	err := c.cc.Invoke(ctx, UserService_GetUserById_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *userServiceClient) UpdateUserBalance(ctx context.Context, in *UpdateUserBalanceRequest, opts ...grpc.CallOption) (*UpdateUserBalanceResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(UpdateUserBalanceResponse)
@@ -65,6 +77,7 @@ func (c *userServiceClient) UpdateUserBalance(ctx context.Context, in *UpdateUse
 // for forward compatibility.
 type UserServiceServer interface {
 	GetUserByToken(context.Context, *emptypb.Empty) (*GetUserByTokenResponse, error)
+	GetUserById(context.Context, *GetUserByIdRequest) (*GetUserByIdResponse, error)
 	UpdateUserBalance(context.Context, *UpdateUserBalanceRequest) (*UpdateUserBalanceResponse, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
@@ -78,6 +91,10 @@ type UnimplementedUserServiceServer struct{}
 
 func (UnimplementedUserServiceServer) GetUserByToken(context.Context, *emptypb.Empty) (*GetUserByTokenResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUserByToken not implemented")
+}
+
+func (UnimplementedUserServiceServer) GetUserById(context.Context, *GetUserByIdRequest) (*GetUserByIdResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUserById not implemented")
 }
 func (UnimplementedUserServiceServer) UpdateUserBalance(context.Context, *UpdateUserBalanceRequest) (*UpdateUserBalanceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateUserBalance not implemented")
@@ -121,6 +138,24 @@ func _UserService_GetUserByToken_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserService_GetUserById_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUserByIdRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).GetUserById(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_GetUserById_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).GetUserById(ctx, req.(*GetUserByIdRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _UserService_UpdateUserBalance_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UpdateUserBalanceRequest)
 	if err := dec(in); err != nil {
@@ -149,6 +184,10 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetUserByToken",
 			Handler:    _UserService_GetUserByToken_Handler,
+		},
+		{
+			MethodName: "GetUserById",
+			Handler:    _UserService_GetUserById_Handler,
 		},
 		{
 			MethodName: "UpdateUserBalance",
