@@ -86,11 +86,7 @@ func (s *InstitutionServer) GetInstitutionByID(ctx context.Context, req *pb.GetI
 		return nil, status.Errorf(codes.Internal, "failed to get authenticated institution ID from context")
 	}
 
-	if authenticatedInstitutionID != req.InstitutionId {
-		return nil, status.Errorf(codes.PermissionDenied, "unauthorized access")
-	}
-
-	institutionID, err := uuid.Parse(req.InstitutionId)
+	institutionID, err := uuid.Parse(authenticatedInstitutionID)
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid institution ID format: %v", err)
 	}

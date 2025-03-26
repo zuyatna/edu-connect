@@ -25,7 +25,7 @@ func (h *InstitutionHTTPHandler) Routes(e *echo.Echo) {
 	e.POST("/v1/institution/register", h.RegisterInstitution)
 	e.POST("/v1/institution/login", h.LoginInstitution)
 
-	e.GET("/v1/institution/:id", AuthMiddleware(h.GetInstitutionByID))
+	e.GET("/v1/institution", AuthMiddleware(h.GetInstitutionByID))
 	e.PUT("/v1/institution/:id", AuthMiddleware(h.UpdateInstitution))
 	e.DELETE("/v1/institution/:id", AuthMiddleware(h.DeleteInstitution))
 }
@@ -107,18 +107,17 @@ func (h *InstitutionHTTPHandler) LoginInstitution(c echo.Context) error {
 }
 
 // GetInstitutionByID godoc
-// @Summary      Get Institution by ID.
-// @Description  Get data institution by ID with authorization.
+// @Summary      Get Institution.
+// @Description  Get data institution with authorization.
 // @Tags         Institution
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
 // @Param        Authorization  header    string  true  "Bearer token"
-// @Param        id            path      string    true  "Institution ID"
 // @Success      200  {object}  model.InstitutionResponse "Success get institution data"
 // @Failure      401  {object}  httputil.HTTPError "Unauthorized"
 // @Failure      404  {object}  httputil.HTTPError "Data not found"
-// @Router       /v1/institution/{id} [get]
+// @Router       /v1/institution [get]
 func (h *InstitutionHTTPHandler) GetInstitutionByID(c echo.Context) error {
 	req := new(pb.GetInstitutionByIDRequest)
 	req.InstitutionId = c.Param("id")

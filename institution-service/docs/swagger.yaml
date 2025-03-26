@@ -146,6 +146,37 @@ paths:
       summary: Get funding collection by Post ID.
       tags:
       - FundCollect
+  /v1/institution:
+    get:
+      consumes:
+      - application/json
+      description: Get data institution with authorization.
+      parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success get institution data
+          schema:
+            $ref: '#/definitions/model.InstitutionResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+        "404":
+          description: Data not found
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+      security:
+      - BearerAuth: []
+      summary: Get Institution.
+      tags:
+      - Institution
   /v1/institution/{id}:
     delete:
       consumes:
@@ -176,41 +207,6 @@ paths:
       security:
       - BearerAuth: []
       summary: Delete Institution.
-      tags:
-      - Institution
-    get:
-      consumes:
-      - application/json
-      description: Get data institution by ID with authorization.
-      parameters:
-      - description: Bearer token
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      - description: Institution ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Success get institution data
-          schema:
-            $ref: '#/definitions/model.InstitutionResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/httputil.HTTPError'
-        "404":
-          description: Data not found
-          schema:
-            $ref: '#/definitions/httputil.HTTPError'
-      security:
-      - BearerAuth: []
-      summary: Get Institution by ID.
       tags:
       - Institution
     put:
