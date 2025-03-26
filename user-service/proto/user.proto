@@ -8,7 +8,19 @@ option go_package = "proto/user";
 
 service UserService {
     rpc GetUserByToken (google.protobuf.Empty) returns (GetUserByTokenResponse);
+    rpc GetUserById (GetUserByIdRequest) returns (GetUserByIdResponse);
     rpc UpdateUserBalance (UpdateUserBalanceRequest) returns (UpdateUserBalanceResponse);
+}
+
+message GetUserByIdRequest {
+    int32 id = 1;
+}
+
+message GetUserByIdResponse {
+    int32 id = 1;
+    string name = 2;
+    string email = 3;
+    double balance = 4;
 }
 
 message GetUserByTokenResponse {
