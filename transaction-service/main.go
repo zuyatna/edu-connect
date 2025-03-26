@@ -194,6 +194,11 @@ func InitHTTPServer(
 		return nil
 	})
 
+	e.GET("/payment/success", func(c echo.Context) error {
+		paymentCallbackHandler.HandleSuccessRedirect(c.Response().Writer, c.Request())
+		return nil
+	})
+
 	transactionRoutes := routes.NewTransactionHTTPHandler(transactionClient)
 	transactionRoutes.Routes(e)
 

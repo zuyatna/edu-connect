@@ -104,7 +104,7 @@ func (s *TransactionServer) CreateTransaction(ctx context.Context, req *pbTransa
 		Description:        fmt.Sprintf("Fund contribution for %s", post.Title),
 		CustomerName:       "anonymous",
 		InvoiceDuration:    86400, // 24 hours
-		SuccessRedirectURL: "https://edu-connect.example.com/payment/success",
+		SuccessRedirectURL: fmt.Sprintf("https://transaction-service-1011483964797.asia-southeast2.run.app/payment/success?external_id=%s", transactionIDStr),
 		FailureRedirectURL: "https://edu-connect.example.com/payment/failed",
 		CallbackURL:        "https://edu-connect.example.com/api/payment/callback",
 	}
