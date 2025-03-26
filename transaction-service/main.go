@@ -11,6 +11,7 @@ import (
 	"syscall"
 
 	"transaction-service/database"
+	"transaction-service/docs"
 	"transaction-service/handler"
 	"transaction-service/middlewares"
 	pbFuncCollect "transaction-service/pb/fund_collect"
@@ -24,6 +25,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
 	"github.com/sirupsen/logrus"
+	echoSwagger "github.com/swaggo/echo-swagger"
 	"go.mongodb.org/mongo-driver/mongo"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -32,6 +34,12 @@ import (
 	"gorm.io/gorm"
 )
 
+// @contact.name   API Support
+// @contact.url    http://www.swagger.io/support
+// @contact.email  support@swagger.io
+
+// @license.name  Apache 2.0
+// @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
 func main() {
 	logger := logrus.New()
 	logger.SetFormatter(&logrus.TextFormatter{
@@ -187,13 +195,16 @@ func InitHTTPServer(
 		return c.String(http.StatusOK, "OK")
 	})
 
+	docs.SwaggerInfo.Title = "EduConnect - Transaction Service API Contract"
+	docs.SwaggerInfo.Description = "This is a documentation EduConnect - Transaction Service API Contract."
+	docs.SwaggerInfo.Version = "1.0"
+	docs.SwaggerInfo.Host = "transaction-service-1011483964797.asia-southeast2.run.app"
+	docs.SwaggerInfo.BasePath = "/"
+	docs.SwaggerInfo.Schemes = []string{"https"}
+	e.GET("/swagger/*", echoSwagger.WrapHandler)
+
 	userClient := pbUser.NewUserServiceClient(userConn)
 	paymentCallbackHandler := handler.NewPaymentCallbackHandler(transactionUsecase, userClient, fundCollectClient)
-	e.POST("/api/payment/callback", func(c echo.Context) error {
-		paymentCallbackHandler.HandleCallback(c.Response().Writer, c.Request())
-		return nil
-	})
-
 	e.GET("/payment/success", func(c echo.Context) error {
 		paymentCallbackHandler.HandleSuccessRedirect(c.Response().Writer, c.Request())
 		return nil
