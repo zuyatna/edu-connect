@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"transaction-service/client"
 	"transaction-service/middlewares"
@@ -67,8 +68,18 @@ func (s *TransactionServer) CreateTransaction(ctx context.Context, req *pbTransa
 
 	authenticatedUserID := getUser.ID
 
-	if userID, userIDOk := ctx.Value(middlewares.UserIDKey).(string); userIDOk && userID != "" {
-		authenticatedUserID = "00000000-0000-0000-0000-000000000000" // userID
+	postID, err := uuid.Parse(req.PostId)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid post ID format: %v", err)
+	}
+
+	post, err := s.transactionUsecase.GetPostByID(ctx, postID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get post: %v", err)
+	}
+
+	if post.DateEnd.Before(time.Now()) {
+		return nil, status.Errorf(codes.FailedPrecondition, "this fundraising has ended, cannot accept new transactions")
 	}
 
 	transaction_model := &model.Transaction{
@@ -87,15 +98,6 @@ func (s *TransactionServer) CreateTransaction(ctx context.Context, req *pbTransa
 	}
 
 	transactionIDStr := transaction.TransactionID.Hex()
-	postID, err := uuid.Parse(req.PostId)
-	if err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "invalid post ID format: %v", err)
-	}
-
-	post, err := s.transactionUsecase.GetPostByID(ctx, postID)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to get post: %v", err)
-	}
 
 	invoiceReq := client.CreateInvoiceRequest{
 		ExternalID:         transactionIDStr,

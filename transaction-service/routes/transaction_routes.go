@@ -34,7 +34,6 @@ func (h *TransactionHTTPHandler) Routes(e *echo.Echo) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        Authorization  header    string  true  "Bearer token"
-// @Param        id            path      string    true  "User ID"
 // @Param        request body model.TransactionRequest true "Transaction created details"
 // @Success      200 {object} model.TransactionResponse "Transaction created successfully"
 // @Failure      500 {object} httputil.HTTPError "Internal server error"

@@ -103,7 +103,7 @@ func (h *PostHTTPHandler) CreatePost(c echo.Context) error {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        Authorization  header    string  true  "Bearer token"
-// @Param        id            path      string    true  "Institution ID"
+// @Param        id            path      string    true  "Post ID"
 // @Success      200  {object}  model.PostResponse "Success get post data"
 // @Failure      401  {object}  httputil.HTTPError "Unauthorized"
 // @Failure      404  {object}  httputil.HTTPError "Post not found"
@@ -163,7 +163,7 @@ func (h *PostHTTPHandler) GetAllPostByInstitutionID(c echo.Context) error {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        Authorization  header    string  true  "Bearer token"
-// @Param        id            path      string    true  "Institution ID"
+// @Param        id            path      string    true  "Post ID"
 // @Param        request       body      model.PostRequest  true  "Updated post data"
 // @Success      200  {object}  model.PostResponse "Success update post data"
 // @Failure      401  {object}  httputil.HTTPError "Unauthorized"
@@ -205,7 +205,7 @@ func (h *PostHTTPHandler) UpdatePost(c echo.Context) error {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        Authorization  header    string  true  "Bearer token"
-// @Param        id            path      string     true  "Institution ID"
+// @Param        id            path      string     true  "Post ID"
 // @Success      200  {object}  model.PostDeleteResponse "Success delete post data"
 // @Failure      500  {object}  httputil.HTTPError "Internal server error"
 // @Router       /v1/post/{id} [delete]

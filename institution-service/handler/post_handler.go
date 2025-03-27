@@ -236,6 +236,11 @@ func (s *PostServer) UpdatePost(ctx context.Context, req *pb.UpdatePostRequest) 
 		}
 	}
 
+	sixMonths := 6 * 30 * 24 * time.Hour
+	if dateEnd.Sub(dateStart) > sixMonths {
+		return nil, status.Errorf(codes.InvalidArgument, "fundraising period cannot be more than 6 months")
+	}
+
 	post := &model.Post{
 		PostID:        postID,
 		Title:         req.Title,

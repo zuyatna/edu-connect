@@ -5,7 +5,6 @@ import (
 
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"gorm.io/gorm"
 )
 
 type Transaction struct {
@@ -52,17 +51,18 @@ type User struct {
 type Post struct {
 	PostID       uuid.UUID `json:"post_id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 	Title        string    `json:"title" gorm:"type:varchar(255); not null"`
+	Body         string    `json:"body" gorm:"type:text; not null"`
+	DateStart    time.Time `json:"date_start" gorm:"type:timestamp; not null"`
+	DateEnd      time.Time `json:"date_end" gorm:"type:timestamp; not null"`
+	FundTarget   float64   `json:"fund_target" gorm:"type:float; not null"`
 	FundAchieved float64   `json:"fund_achieved" gorm:"type:float; default:0"`
 }
 
 type FundCollect struct {
-	FundCollectID uuid.UUID      `json:"fund_collect_id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	PostID        uuid.UUID      `json:"post_id" gorm:"type:uuid; not null"`
-	UserID        string         `json:"user_id" gorm:"type:varchar(255); not null"`
-	UserName      string         `json:"user_name" gorm:"type:varchar(255); not null"`
-	Amount        float64        `json:"amount" gorm:"type:float; not null"`
-	TransactionID string         `json:"transaction_id" gorm:"type:varchar(255); not null"`
-	CreatedAt     time.Time      `json:"created_at" gorm:"type:timestamp; not null; autoCreateTime"`
-	UpdatedAt     time.Time      `json:"updated_at" gorm:"type:timestamp; not null; autoUpdateTime"`
-	DeletedAt     gorm.DeletedAt `json:"deleted_at" gorm:"type:timestamp"`
+	FundCollectID uuid.UUID `json:"fund_collect_id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	PostID        uuid.UUID `json:"post_id" gorm:"type:uuid; not null"`
+	UserID        string    `json:"user_id" gorm:"type:varchar(255); not null"`
+	UserName      string    `json:"user_name" gorm:"type:varchar(255); not null"`
+	Amount        float64   `json:"amount" gorm:"type:float; not null"`
+	TransactionID string    `json:"transaction_id" gorm:"type:varchar(255); not null"`
 }
