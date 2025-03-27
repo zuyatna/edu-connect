@@ -23,7 +23,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/v1/fund-collect/{id}": {
+        "/v1/fund-collect/post/{id}": {
             "get": {
                 "security": [
                     {
@@ -51,7 +51,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Institution ID",
+                        "description": "Post ID",
                         "name": "id",
                         "in": "path",
                         "required": true
