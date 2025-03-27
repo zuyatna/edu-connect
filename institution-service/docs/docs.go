@@ -464,7 +464,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Institution ID",
+                        "description": "Post ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -518,7 +518,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Institution ID",
+                        "description": "Post ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -581,7 +581,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Institution ID",
+                        "description": "Post ID",
                         "name": "id",
                         "in": "path",
                         "required": true

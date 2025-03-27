@@ -352,7 +352,7 @@ paths:
         name: Authorization
         required: true
         type: string
-      - description: Institution ID
+      - description: Post ID
         in: path
         name: id
         required: true
@@ -383,7 +383,7 @@ paths:
         name: Authorization
         required: true
         type: string
-      - description: Institution ID
+      - description: Post ID
         in: path
         name: id
         required: true
@@ -418,7 +418,7 @@ paths:
         name: Authorization
         required: true
         type: string
-      - description: Institution ID
+      - description: Post ID
         in: path
         name: id
         required: true

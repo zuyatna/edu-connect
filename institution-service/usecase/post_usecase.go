@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"time"
 
 	"institution-service/model"
 
@@ -54,6 +55,12 @@ func (u *PostUsecase) CreatePost(ctx context.Context, post *model.Post) (*model.
 	if post.DateStart.Equal(post.DateEnd) {
 		e = append(e, "Date Start must be different from Date End")
 	}
+
+	sixMonths := 6 * 30 * 24 * time.Hour
+	if post.DateEnd.Sub(post.DateStart) > sixMonths {
+		e = append(e, "Fundraising period cannot be more than 6 months")
+	}
+
 	if post.FundTarget <= 0 {
 		e = append(e, "Fund Target must be greater than 0")
 	}
