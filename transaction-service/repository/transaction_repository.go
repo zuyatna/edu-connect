@@ -110,8 +110,8 @@ func (r *TransactionRepository) GetUserByEmail(ctx context.Context, email string
 	}
 	defer sqlDB.Close()
 
-	if err := userDB.Where("email = ?", email).First(&user).Error; err != nil {
-		return nil, err
+	if err := userDB.Table("users").Where("email = ?", email).First(&user).Error; err != nil {
+		return nil, fmt.Errorf("error querying user: %w", err)
 	}
 
 	return &user, nil

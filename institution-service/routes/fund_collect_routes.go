@@ -32,11 +32,11 @@ func (h *FundCollectHTTPHandler) Routes(e *echo.Echo) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        Authorization  header    string  true  "Bearer token"
-// @Param        id            path      string    true  "Institution ID"
+// @Param        id            path      string    true  "Post ID"
 // @Success      200  {object}  model.FundCollectResponse "Success get funding collection data"
 // @Failure      401  {object}  httputil.HTTPError "Unauthorized"
 // @Failure      404  {object}  httputil.HTTPError "Funding collection not found"
-// @Router       /v1/fund-collect/{id} [get]
+// @Router       /v1/fund-collect/post/{id} [get]
 func (h *FundCollectHTTPHandler) GetFundCollectByPostID(c echo.Context) error {
 	req := new(pb.GetFundCollectByPostIDRequest)
 	req.PostId = c.Param("id")
