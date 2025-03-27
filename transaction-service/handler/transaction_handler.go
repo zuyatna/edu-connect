@@ -66,7 +66,7 @@ func (s *TransactionServer) CreateTransaction(ctx context.Context, req *pbTransa
 		log.Printf("Failed to get user by email: %v", err)
 	}
 
-	authenticatedUserID := getUser.ID
+	authenticatedUserID := getUser.UserID
 
 	postID, err := uuid.Parse(req.PostId)
 	if err != nil {

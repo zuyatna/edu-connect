@@ -43,9 +43,9 @@ type TransactionResponse struct {
 }
 
 type User struct {
-	ID    string `gorm:"primaryKey" json:"id"`
-	Name  string `gorm:"type:varchar(50);not null" json:"name"`
-	Email string `gorm:"type:varchar(100);unique;not null" json:"email"`
+	UserID string `gorm:"primaryKey" json:"user_id"`
+	Name   string `gorm:"type:varchar(50);not null" json:"name"`
+	Email  string `gorm:"type:varchar(100);unique;not null" json:"email"`
 }
 
 type Post struct {
